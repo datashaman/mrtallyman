@@ -1,0 +1,25 @@
+version: '2'
+services:
+    redis:
+        image: redis:alpine
+    web:
+        build: .
+        command: sh -c './wait-for.sh redis:6379 -- flask run -h 0.0.0.0'
+        ports:
+            - 5000:5000
+        depends_on:
+            - redis
+        environment:
+            REDIS_HOST: redis
+        env_file:
+            - .env
+    worker:
+        build: .
+        command: sh -c './wait-for.sh redis:6379 -- rq worker -c settings'
+        restart: unless-stopped
+        depends_on:
+            - redis
+        environment:
+            REDIS_HOST: redis
+        env_file:
+            - .env
