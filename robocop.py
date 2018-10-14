@@ -1,5 +1,6 @@
 import calendar
 import dateutil.parser
+import gevent
 import hashlib
 import hmac
 import json
@@ -10,13 +11,10 @@ import sys
 import time
 
 from flask import Flask, abort, request
-from redis import Redis
-from rq import Queue
 from slackclient import SlackClient
 from wit import Wit
 
 module = sys.modules[__name__]
-queue = Queue(connection=Redis(host=os.environ['REDIS_HOST']))
 slack = SlackClient(os.environ['SLACK_API_TOKEN'])
 wit = Wit(os.environ['WIT_TOKEN'])
 
@@ -25,11 +23,11 @@ app.logger.level = logging.DEBUG
 
 bot_id = slack.api_call('auth.test')['user_id']
 
-def dispatch(data, enqueue=True):
+def dispatch(data, spawn=True):
     function = data['type']
     if hasattr(module, function):
-        if enqueue:
-            queue.enqueue(getattr(module, function), data)
+        if spawn:
+            gevent.spawn(getattr(module, function), data)
             return 'OK'
         else:
             return getattr(module, function)(data)
@@ -46,6 +44,9 @@ def valid_request():
     signature = 'v0=' + hmac.new(key, msg, hashlib.sha256).hexdigest()
     return hmac.compare_digest(signature, request.headers['X-Slack-Signature'])
 
+def strip_bot_id(text):
+    return text.replace('<@%s>' % bot_id, '')
+
 # Callback handlers
 def event_callback(payload):
     event = payload['event']
@@ -55,9 +56,6 @@ def event_callback(payload):
 
 def url_verification(payload):
     return payload['challenge']
-
-def strip_bot_id(text):
-    return text.replace('<@%s>' % bot_id, '')
 
 # Event handlers
 def app_mention(event):
@@ -76,7 +74,7 @@ def app_mention(event):
 
         response = requests.get(url)
         weather = response.json()
-        print(json.dumps(weather, indent=4))
+        app.logger.debug(json.dumps(weather, indent=4))
         slack.api_call(
             'chat.postMessage',
             channel=event['channel'],
@@ -98,6 +96,6 @@ def home():
     if valid_request():
         payload = request.get_json()
         app.logger.debug('payload %s', payload)
-        enqueue = payload['type'] not in ['event_callback', 'url_verification']
-        return dispatch(payload, enqueue)
+        spawn = payload['type'] not in ['event_callback', 'url_verification']
+        return dispatch(payload, spawn)
     abort(400)

@@ -1,6 +1,5 @@
 flask
+gevent
 python-dateutil
-redis
-rq
 slackclient
 wit
