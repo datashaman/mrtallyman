@@ -1,6 +1,6 @@
 import calendar
 import dateutil.parser
-import gevent
+import gipc
 import hashlib
 import hmac
 import json
@@ -20,6 +20,7 @@ wit = Wit(os.environ['WIT_TOKEN'])
 
 app = Flask(__name__)
 app.logger.level = logging.DEBUG
+app.logger.debug('PID: %s', os.getpid())
 
 bot_id = slack.api_call('auth.test')['user_id']
 
@@ -27,7 +28,7 @@ def dispatch(data, spawn=True):
     function = data['type']
     if hasattr(module, function):
         if spawn:
-            gevent.spawn(getattr(module, function), data)
+            gipc.start_process(getattr(module, function), (data,))
             return 'OK'
         else:
             return getattr(module, function)(data)
@@ -59,6 +60,7 @@ def url_verification(payload):
 
 # Event handlers
 def app_mention(event):
+    app.logger.debug('PID: %s', os.getpid())
     wit_response = wit.message(strip_bot_id(event['text']))
 
     if wit_response['entities']['intent'][0]['value'] == 'weather':
