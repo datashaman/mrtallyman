@@ -1,6 +1,7 @@
 flask
 gevent
 gipc
+kev
 python-dateutil
 slackclient
 wit
