@@ -7,6 +7,8 @@ from kev import Document, CharProperty, IntegerProperty
 from kev.loading import KevHandler
 from slackclient import SlackClient
 
+EMOJI = ':banana:'
+
 kev_handler = KevHandler({
     's3': {
         'backend': 'kev.backends.s3.db.S3DB',
@@ -16,7 +18,7 @@ kev_handler = KevHandler({
     },
 })
 
-class BananaLog(Document):
+class Log(Document):
     sender = CharProperty(required=True, index=True)
     recipient = CharProperty(required=True, index=True)
     amount = IntegerProperty(default_value=1, min_value=1, max_value=5)
@@ -28,7 +30,7 @@ class BananaLog(Document):
         use_db = 's3'
         handler = kev_handler
 
-# log = BananaLog(sender='sender', recipient='recipient', amount=1)
+# log = Log(sender='sender', recipient='recipient', amount=1)
 # log.save()
 
 slack = SlackClient(os.environ['SLACK_API_TOKEN'])
@@ -40,7 +42,7 @@ app = Flask(__name__)
 def app_mention_event(event):
     if event.get('subtype') != 'bot_message':
         if event['text'] == '<@%s> leaderboard' % bot_id:
-            logs = list(BananaLog.all())
+            logs = list(Log.all())
             recipients = {}
 
             for log in logs:
@@ -62,10 +64,10 @@ def app_mention_event(event):
 def message_event(event):
     if event['channel_type'] == 'channel' and event.get('subtype') != 'bot_message':
         sender = event['user']
-        bananas = re.findall(r':banana:', event['text'])
+        bananas = re.findall(EMOJI, event['text'])
         if bananas:
             for recipient in re.findall(r'<@([A-Z0-9]+)>', event['text']):
-                log = BananaLog(sender=sender, recipient=recipient, amount=len(bananas))
+                log = Log(sender=sender, recipient=recipient, amount=len(bananas))
                 log.save()
 
 @app.route('/', methods=['POST'])
