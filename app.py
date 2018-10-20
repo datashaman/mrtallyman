@@ -3,7 +3,7 @@ import gevent
 import operator
 import re
 import random
-import robocop
+import tallybot
 import os
 
 from botocore.exceptions import ClientError
@@ -83,11 +83,19 @@ def post_message(event, text):
 def reset_table(event):
     global table
 
-    app.logger.debug('Resetting table')
-    post_message(event, 'Resetting table')
+    response = slack.api_call(
+        'users.info',
+        user=event['user']
+    )
 
-    delete_table(event)
-    table = create_table(event)
+    if response['user']['is_admin']:
+        app.logger.debug('Resetting table')
+        post_message(event, 'Resetting table')
+
+        delete_table(event)
+        table = create_table(event)
+    else:
+        post_message(event, "Nice try, buddy!")
 
 table = create_table()
 
@@ -120,7 +128,7 @@ def generate_leaderboards(event):
 
     post_message(event, leaderboards)
 
-@robocop.on('app_mention')
+@tallybot.on('app_mention')
 def app_mention_event(event):
     if event.get('subtype') != 'bot_message' and not event.get('edited'):
         if event['text'] == '<@%s> leaderboard' % bot_id:
@@ -208,7 +216,7 @@ def update_scores(event):
             text = '%s %s' % (generate_affirmation(), ', '.join(report))
             post_message(event, text)
 
-@robocop.on('message')
+@tallybot.on('message')
 def message_event(event):
     if event['channel_type'] == 'channel'and 'subtype' not in event:
         gevent.spawn(update_scores, event)
@@ -221,7 +229,7 @@ def message_event(event):
 
 @app.route('/', methods=['POST'])
 def home():
-    response = robocop.handle(request)
+    response = tallybot.handle(request)
 
     if response is True:
         return ''

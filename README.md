@@ -1,10 +1,19 @@
-# robocop
+# tallybot
 
-Slack responder that handles events and commands. Uses gevent to spawn long-running threads.
+Slack bot that tallies scores for a team. Uses DynamoDB to store results and gevent to spawn long-running threads.
 
-Setup an app and a bot on Slack, subscribe to events (and setup the needed OAuth scopes), or create a command.
+Requires AWS credentials to be setup on the host.
 
-Change _app.py_ to handle specific events and commands, run ngrok to expose an endpoint during development.
+Setup an app and a bot on Slack, deploy the app to a host somewhere. Verify the Request URL and subscribe to the following events:
+
+- `app_mention`
+- `message.channels`
+- `message.im`
+
+Grant the following OAuth scopes to the bot:
+
+- `channels:history`
+- `channels:read`
 
 Installation:
 
@@ -18,28 +27,19 @@ Running:
 
     python server.py
 
-In your Flask application decorate functions as follows:
+## operations
 
-    import robocop
+The bot must be invited to a channel to respond to events.
 
-    @robocop.on('app_mention')
-    def app_mention_event(event):
-        # Do your thing.
-        pass
+To add a reward to a user, mention them in a message with a variable number of reward emojis (default :banana:):
 
-    @robocop.on('/robocop')
-    def robocop_command(form):
-        # Do your thing.
-        return 'Immediate response'
+    @user1 here have a :banana:
+    @user2 @user3 you deserve 2! :banana: :banana:
 
-The _on_ decorator is for events and commands. If the parameter starts with _/_, it is handled like a command, otherwise as an event.
+To see the leaderboard:
 
-For event handlers, the parameter is the event type. If a handler returns _False_, subsequent event handlers are ignored. Use _postMessage_ to report back.
+    @tallybot leaderboard
 
-You may have multiple event handlers for the same event type.
+If you are an admin you can privately message the bot to reset the leaderboards:
 
-If no event handler exists for a specific event type, the endpoint aborts with HTTP status code _400_. If an event handler exists, it returns a blank response with HTTP status _200_.
-
-For command handlers, the parameter is the command prefixed with _/_. The command handler is run in the same process as the web server. If you want to spawn a new process to deal with long-running calculation use `gipc.start_process`.
-
-There can be only be one command handler per command, and you are advised to return an immediate response to let the user know something is taking place.
+    reset!
