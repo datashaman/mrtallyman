@@ -1,14 +1,17 @@
 import boto3
-import gevent
 import operator
 import re
 import random
 import tallybot
 import os
+import settings
+import sys
+sys.stdout = sys.stderr
 
 from botocore.exceptions import ClientError
 from flask import Flask, abort, request
 from slackclient import SlackClient
+from zappa.async import task
 
 app = Flask(__name__)
 
@@ -74,12 +77,14 @@ def create_table(event=None):
 
 def post_message(event, text):
     if event is not None:
+        app.logger.debug('Sending message %s to channel %s', text, event['channel'])
         slack.api_call(
             'chat.postMessage',
             channel=event['channel'],
             text=text
         )
 
+@task
 def reset_table(event):
     global table
 
@@ -103,12 +108,13 @@ slack = SlackClient(os.environ['SLACK_API_TOKEN'])
 auth_test = slack.api_call('auth.test')
 bot_id = auth_test['user_id']
 
-def generate_leaderboard(users, column='received', number=10):
+def generate_leaderboard(users, column='received'):
     leaderboard = []
-    for index, user in enumerate(sorted(users, key=operator.itemgetter(column), reverse=True)[:number]):
+    for index, user in enumerate(sorted(users, key=operator.itemgetter(column), reverse=True)[:10]):
         leaderboard.append('%d. <@%s> - %d %s' % (index+1, user['user_id'], user[column], EMOJI))
     return '\n'.join(leaderboard)
 
+@task
 def generate_leaderboards(event):
     try:
         table.wait_until_exists()
@@ -132,7 +138,7 @@ def generate_leaderboards(event):
 def app_mention_event(event):
     if event.get('subtype') != 'bot_message' and not event.get('edited'):
         if event['text'] == '<@%s> leaderboard' % bot_id:
-            gevent.spawn(generate_leaderboards, event)
+            generate_leaderboards(event)
 
 def generate_affirmation():
     return random.choice([
@@ -196,11 +202,15 @@ def update_users(giver, recipients, count):
     update_user(giver, 'given', count)
 
     for user_id in recipients:
-        user = update_user(user_id, 'received', count)
-        report.append('<@%s> has %d %s!' % (user_id, user['received'], EMOJI))
+        if user_id == giver:
+            report.append('<@%s> no :banana: for you! (nice try, human)' % giver) 
+        else:
+            user = update_user(user_id, 'received', count)
+            report.append('<@%s> has %d %s!' % (user_id, user['received'], EMOJI))
 
     return report
 
+@task
 def update_scores(event):
     if 'message' in event:
         message = event['message']
@@ -219,13 +229,13 @@ def update_scores(event):
 @tallybot.on('message')
 def message_event(event):
     if event['channel_type'] == 'channel'and 'subtype' not in event:
-        gevent.spawn(update_scores, event)
+        update_scores(event)
 
     elif event['channel_type'] == 'im' and event['text'] == 'reset!':
-        gevent.spawn(reset_table, event)
+        reset_table(event)
 
     elif event['channel_type'] == 'im' and event['text'] == 'leaderboard':
-        gevent.spawn(generate_leaderboards, event)
+        generate_leaderboards(event)
 
 @app.route('/', methods=['POST'])
 def home():

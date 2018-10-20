@@ -1,5 +1,6 @@
 boto3
 flask
-gevent
-python-dateutil
+python-dateutil<2.7.0,>=2.6.1
+python-dotenv
 slackclient
+zappa
