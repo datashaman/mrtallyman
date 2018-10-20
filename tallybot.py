@@ -25,12 +25,12 @@ def handle_command(form):
         return handlers[command](form)
     return False
 
-def handle_event(event):
-    event_type = event['type']
+def handle_event(payload):
+    event_type = payload['event']['type']
 
     if event_type in handlers:
         for func in handlers[event_type]:
-            if func(event) == False:
+            if func(payload) == False:
                 return False
         return True
     return False
@@ -52,7 +52,7 @@ def handle(request):
         payload = request.get_json()
 
         if payload['type'] == 'event_callback':
-            return handle_event(payload['event'])
+            return handle_event(payload)
         elif payload['type'] == 'url_verification':
             return payload['challenge']
     return False
