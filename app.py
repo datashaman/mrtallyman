@@ -77,7 +77,7 @@ def create_table(event=None):
 
 def post_message(event, text):
     if event is not None:
-        app.logger.debug('Sending message %s to channel %s', text, event['channel'])
+        app.logger.debug("Sending message '%s' to channel %s", text, event['channel'])
         slack.api_call(
             'chat.postMessage',
             channel=event['channel'],
