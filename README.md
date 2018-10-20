@@ -1,6 +1,6 @@
 # robocop
 
-Slack responder that handles events and commands. Uses gipc and gevent to spawn long-running processes.
+Slack responder that handles events and commands. Uses gevent to spawn long-running threads.
 
 Setup an app and a bot on Slack, subscribe to events (and setup the needed OAuth scopes), or create a command.
 
@@ -34,7 +34,7 @@ In your Flask application decorate functions as follows:
 
 The _on_ decorator is for events and commands. If the parameter starts with _/_, it is handled like a command, otherwise as an event.
 
-For event handlers, the parameter is the event type. All event handlers are run in a separate process and the return results are ignored.
+For event handlers, the parameter is the event type. If a handler returns _False_, subsequent event handlers are ignored. Use _postMessage_ to report back.
 
 You may have multiple event handlers for the same event type.
 

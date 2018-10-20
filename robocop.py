@@ -1,4 +1,3 @@
-import gipc
 import hashlib
 import hmac
 import os
@@ -31,7 +30,8 @@ def handle_event(event):
 
     if event_type in handlers:
         for func in handlers[event_type]:
-            func(event)
+            if func(event) == False:
+                return False
         return True
     return False
 

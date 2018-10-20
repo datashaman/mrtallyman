@@ -16,22 +16,28 @@ EMOJI = ':banana:'
 
 dynamodb = boto3.resource('dynamodb')
 
-def delete_table():
+def delete_table(event=None):
     app.logger.debug('Deleting table')
+    post_message(event, 'Deleting table')
+
     try:
         table.delete()
         table.wait_until_not_exists()
     except ClientError as exc:
         if exc.response['Error']['Code'] == 'ResourceInUseException':
             app.logger.debug('Table is deleting')
+            post_message(event, 'Table is deleting')
             table.wait_until_not_exists()
         elif exc.response['Error']['Code'] != 'ResourceNotFoundException':
             app.logger.debug('Table does not exist')
+            post_message(event, 'Table does not exist')
             raise exc
     app.logger.debug('Table deleted')
+    post_message(event, 'Table deleted')
 
-def create_table():
+def create_table(event=None):
     app.logger.debug('Creating table')
+    post_message(event, 'Creating table')
 
     try:
         table = dynamodb.create_table(
@@ -55,28 +61,33 @@ def create_table():
         )
         table.wait_until_exists()
         app.logger.debug('Table created')
+        post_message(event, 'Table created')
     except ClientError as exc:
         if exc.response['Error']['Code'] == 'ResourceInUseException':
             app.logger.debug('Table exists')
+            post_message(event, 'Table exists')
             table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
         else:
             raise exc
 
     return table
 
+def post_message(event, text):
+    if event is not None:
+        slack.api_call(
+            'chat.postMessage',
+            channel=event['channel'],
+            text=text
+        )
+
 def reset_table(event):
     global table
 
     app.logger.debug('Resetting table')
+    post_message(event, 'Resetting table')
 
-    delete_table()
-    table = create_table()
-
-    slack.api_call(
-        'chat.postMessage',
-        channel=event['channel'],
-        text=generate_gone()
-    )
+    delete_table(event)
+    table = create_table(event)
 
 table = create_table()
 
@@ -107,11 +118,7 @@ def generate_leaderboards(event):
         else:
             raise exc
 
-    slack.api_call(
-        'chat.postMessage',
-        channel=event['channel'],
-        text=leaderboards
-    )
+    post_message(event, leaderboards)
 
 @robocop.on('app_mention')
 def app_mention_event(event):
@@ -142,18 +149,6 @@ def generate_affirmation():
         "That's great!",
         'Very suitable.',
         'Well done!',
-    ])
-
-def generate_gone():
-    return random.choice([
-        'Gone.',
-        'Consumed.',
-        'Deceased.',
-        'Departed.',
-        'Disintegrated.',
-        'Dissolved.',
-        'Removed.',
-        'Done.',
     ])
 
 def update_user(user_id, attribute, value):
@@ -211,12 +206,7 @@ def update_scores(event):
         if recipients:
             report = update_users(event['user'], recipients, len(emojis))
             text = '%s %s' % (generate_affirmation(), ', '.join(report))
-
-            slack.api_call(
-                'chat.postMessage',
-                channel=event['channel'],
-                text=text
-            )
+            post_message(event, text)
 
 @robocop.on('message')
 def message_event(event):
