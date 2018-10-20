@@ -111,7 +111,8 @@ bot_id = auth_test['user_id']
 def generate_leaderboard(users, column='received'):
     leaderboard = []
     for index, user in enumerate(sorted(users, key=operator.itemgetter(column), reverse=True)[:10]):
-        leaderboard.append('%d. <@%s> - %d %s' % (index+1, user['user_id'], user[column], EMOJI))
+        response = slack.api_call('user.identity', user=user)
+        leaderboard.append('%d. %s - %d %s' % (index+1, response['user']['name'], user[column], EMOJI))
     return '\n'.join(leaderboard)
 
 @task
