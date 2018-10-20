@@ -15,6 +15,8 @@ Grant the following OAuth scopes to the bot:
 - `channels:history`
 - `channels:read`
 
+## Local Development
+
 Installation:
 
     mkvirtualenv -r requirements.txt tallybot
@@ -27,7 +29,27 @@ Running:
 
     flask run
 
-## operations
+## AWS Lambda Development
+
+Installation:
+
+    zappa init
+
+First time deployment of the lambda:
+
+    zappa deploy dev
+
+Updating the running lambda with new changes:
+
+    zappa update dev
+
+To tail the _CloudWatch_ logs:
+
+    zappa tail dev
+
+The endpoint URL should be input into the _Request URL_ on your bot's Event Subscription page. The bot takes care of verifying the challenge.
+
+## Operations
 
 The bot must be invited to a channel to respond to events.
 
@@ -36,9 +58,13 @@ To add a reward to a user, mention them in a message with a variable number of r
     @user1 here have a :banana:
     @user2 @user3 you deserve 2! :banana: :banana:
 
+A user cannot reward themselves.
+
 To see the leaderboard:
 
     @tallybot leaderboard
+
+The leaderboard shows the names of the top users who've given and received rewards since the last table reset. It displays names instead of user mentions to avoid notification fatigue when someone wants to see the leaderboard.
 
 If you are an admin you can privately message the bot to reset the leaderboards:
 
