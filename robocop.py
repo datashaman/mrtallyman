@@ -31,7 +31,7 @@ def handle_event(event):
 
     if event_type in handlers:
         for func in handlers[event_type]:
-            gipc.start_process(func, (event,))
+            func(event)
         return True
     return False
 

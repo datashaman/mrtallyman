@@ -1,7 +1,6 @@
+boto3
 flask
 gevent
 gipc
-kev
 python-dateutil
 slackclient
-wit
