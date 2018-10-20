@@ -17,7 +17,7 @@ Grant the following OAuth scopes to the bot:
 
 Installation:
 
-    mkvirtualenv -r requirements.txt
+    mkvirtualenv -r requirements.txt tallybot
 
 Configuration:
 
@@ -25,7 +25,7 @@ Configuration:
 
 Running:
 
-    python server.py
+    flask run
 
 ## operations
 
