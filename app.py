@@ -1,16 +1,18 @@
 import boto3
-import functools
 import operator
 import re
 import random
+import requests
 import tallybot
 import os
 import settings
 import sys
+import urllib
+import uuid
 sys.stdout = sys.stderr
 
 from botocore.exceptions import ClientError
-from flask import Flask, abort, request
+from flask import Flask, abort, redirect, request, url_for
 from multiprocessing import Process
 from slackclient import SlackClient
 from zappa.async import task
@@ -26,7 +28,14 @@ DAYO_URLS = [
 
 EMOJI = ':banana:'
 
+SCOPES = [
+    'channels:history',
+    'channels:read',
+]
+
 app = Flask(__name__)
+app.secret_key = os.environ['FLASK_SECRET_KEY']
+
 dynamodb = boto3.resource('dynamodb')
 
 def memoize(func):
@@ -86,6 +95,36 @@ def create_config_table():
 def get_config_table():
     return create_config_table()
 
+def update_config(team_id, data):
+    table = get_config_table()
+
+    response = table.get_item(
+        Key={
+            'team_id': team_id
+        }
+    )
+
+    if 'Item' in response:
+        app_log('Updating config for team %s: %s' % (team_id, data))
+
+        expression = 'SET %s' % ', '.join(['%s = :%s' % (key, key) for key in data.keys()])
+        values = dict((':%s' % key, value) for key, value in data.items())
+
+        app_log('Expression: %s' % expression)
+        app_log('Values: %s' % values)
+
+        table.update_item(
+            Key={
+                'team_id': team_id,
+            },
+            UpdateExpression=expression,
+            ExpressionAttributeValues=values
+        )
+    else:
+        app_log('Adding config for team %s' % team_id)
+        data['team_id'] = team_id
+        table.put_item(Item=data)
+
 def update_local_token():
     if os.environ.get('SLACK_API_TOKEN'):
         token = os.environ['SLACK_API_TOKEN']
@@ -93,33 +132,7 @@ def update_local_token():
         auth_test = client.api_call('auth.test')
 
         if auth_test['ok']:
-            table = get_config_table()
-
-            response = table.get_item(
-                Key={
-                    'team_id': auth_test['team_id'],
-                }
-            )
-
-            if 'Item' in response:
-                config = response['Item']
-                if config['token'] != token:
-                    table.update_item(
-                        Key={
-                            'team_id': auth_test['team_id'],
-                        },
-                        UpdateExpression='UPDATE token = :token',
-                        ExpressionAttributeValues={
-                            ':token': token,
-                        }
-                    )
-            else:
-                table.put_item(
-                    Item={
-                        'team_id': auth_test['team_id'],
-                        'token': token,
-                    }
-                )
+            update_config(auth_test['team_id'], {'bot_token': token})
 
 update_local_token()
 
@@ -130,7 +143,7 @@ def get_bot_id(team_id):
 
 @memoize
 def get_client(team_id):
-    token = get_token(team_id)
+    token = get_bot_token(team_id)
     return SlackClient(token)
 
 @memoize
@@ -152,7 +165,7 @@ def team_table_exists(team_id):
         else:
             raise exc
 
-def get_token(team_id):
+def get_bot_token(team_id):
     table = get_config_table()
     response = table.get_item(
         Key={
@@ -160,7 +173,7 @@ def get_token(team_id):
         }
     )
     if 'Item' in response:
-        return response['Item']['token']
+        return response['Item']['bot_token']
 
 def delete_team_table(team_id, channel):
     table_name = get_table_name(team_id)
@@ -251,7 +264,7 @@ def generate_leaderboard(team_id, users, column='received'):
     return '\n'.join(leaderboard)
 
 @task
-def generate_leaderboards(team_id, channel):
+def generate_leaderboards(team_id, event):
     try:
         table = get_team_table(team_id)
         response = table.scan()
@@ -268,23 +281,24 @@ def generate_leaderboards(team_id, channel):
         else:
             raise exc
 
-    post_message(team_id, leaderboards, channel)
+    post_message(team_id, leaderboards, event['channel'])
 
 @tallybot.on('app_mention')
 def app_mention_event(payload):
     event = payload['event']
-    team_id = payload['team_id']
     if event.get('subtype') != 'bot_message' and not event.get('edited'):
+        team_id = payload['team_id']
         bot_id = get_bot_id(team_id)
+        channel = event['channel']
 
         if event['text'] == '<@%s> leaderboard' % bot_id:
-            generate_leaderboards(team_id, event['channel'])
+            generate_leaderboards(team_id, event)
 
         elif event['text'] == '<@%s> banana' % bot_id:
-            post_message(team_id, random.choice(BANANA_URLS), event['channel'])
+            post_message(team_id, random.choice(BANANA_URLS), channel)
 
         elif event['text'] == '<@%s> dayo' % bot_id:
-            post_message(team_id, random.choice(DAYO_URLS), event['channel'])
+            post_message(team_id, random.choice(DAYO_URLS), channel)
 
 def generate_affirmation():
     return random.choice([
@@ -387,15 +401,19 @@ def update_scores(team_id, event):
 
 @tallybot.on('message')
 def message_event(payload):
-    event = payload['event']
     team_id = payload['team_id']
-    if event['channel_type'] == 'channel'and 'subtype' not in event:
+    event = payload['event']
+    channel = event['channel']
+    channel_type = event['channel_type']
+    event_text = event['text']
+
+    if channel_type == 'channel'and 'subtype' not in event:
         update_scores(team_id, event)
 
-    elif event['channel_type'] == 'im' and event['text'] == 'reset!':
+    elif channel_type == 'im' and event_text == 'reset!':
         reset_team_table(team_id, event)
 
-    elif event['channel_type'] == 'im' and event['text'] == 'leaderboard':
+    elif channel_type == 'im' and event_text == 'leaderboard':
         generate_leaderboards(team_id, event)
 
 @app.route('/slack', methods=['POST'])
@@ -408,3 +426,33 @@ def slack():
         abort(400)
 
     return response
+
+@app.route('/auth', methods=['GET'])
+def auth():
+    if 'code' not in request.args:
+        abort(403)
+
+    data = {
+        'client_id': os.environ['SLACK_CLIENT_ID'],
+        'client_secret': os.environ['SLACK_CLIENT_SECRET'],
+        'code': request.args['code'],
+    }
+
+    response = requests.post('https://slack.com/api/oauth.access', data=data)
+    data = response.json()
+
+    if data['ok']:
+        config = {
+            'access_token': data['access_token'],
+            'team_name': data['team_name'],
+            'bot_token': data['bot']['bot_access_token'],
+        }
+        update_config(data['team_id'], config)
+
+        return redirect(url_for('thanks'))
+    else:
+        abort(403)
+
+@app.route('/thanks')
+def thanks():
+    return 'Thanks for installing tallybot!'
