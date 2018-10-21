@@ -13,7 +13,7 @@ from botocore.exceptions import ClientError
 from flask import Flask, abort, request
 from multiprocessing import Process
 from slackclient import SlackClient
-from zappa.async import task as zappa_task
+from zappa.async import task
 
 BANANA_URLS = [
     'https://www.youtube.com/watch?v=sFukyIIM1XI',
@@ -28,14 +28,6 @@ EMOJI = ':banana:'
 
 app = Flask(__name__)
 dynamodb = boto3.resource('dynamodb')
-
-def task(func):
-    def decorator_task(*args, **kwargs):
-        if os.environ.get('FRAMEWORK') == 'Zappa':
-            return zappa_task(func)(*args, **kwargs)
-        p = Process(target=func, args=args, kwargs=kwargs)
-        p.start()
-    return decorator_task
 
 def memoize(func):
     def decorator_memoize(*key):
