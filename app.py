@@ -11,13 +11,31 @@ sys.stdout = sys.stderr
 
 from botocore.exceptions import ClientError
 from flask import Flask, abort, request
+from multiprocessing import Process
 from slackclient import SlackClient
-from zappa.async import task
+from zappa.async import task as zappa_task
+
+BANANA_URLS = [
+    'https://www.youtube.com/watch?v=sFukyIIM1XI',
+]
+
+DAYO_URLS = [
+    'https://www.youtube.com/watch?v=PMigXnXMhQ4',
+    'https://www.youtube.com/watch?v=AQXVHITd1N4',
+]
 
 EMOJI = ':banana:'
 
 app = Flask(__name__)
 dynamodb = boto3.resource('dynamodb')
+
+def task(func):
+    def decorator_task(*args, **kwargs):
+        if os.environ.get('FRAMEWORK') == 'Zappa':
+            return zappa_task(func)(*args, **kwargs)
+        p = Process(target=func, args=args, kwargs=kwargs)
+        p.start()
+    return decorator_task
 
 def memoize(func):
     def decorator_memoize(*key):
@@ -134,7 +152,7 @@ def get_user_info(team_id, user_id):
 def team_table_exists(team_id):
     table_name = get_table_name(team_id)
     try:
-        dynamodb.describe_table(TableName=table_name)
+        dynamodb.meta.client.describe_table(TableName=table_name)
         return True
     except ClientError as exc:
         if exc.response['Error']['Code'] != 'ResourceNotFoundException':
@@ -159,7 +177,7 @@ def delete_team_table(team_id, channel):
         team_log(team_id, 'Table %s is not there' % table_name, channel)
         return
 
-    table = get_team_table(team_id, channel)
+    table = get_team_table(team_id)
     team_log(team_id, 'Deleting table %s' % table_name, channel)
 
     try:
@@ -227,8 +245,6 @@ def reset_team_table(team_id, event):
     )
 
     if response['user']['is_admin']:
-        log('Resetting table', event)
-
         delete_team_table(team_id, channel)
         create_team_table(team_id, channel)
     else:
@@ -238,7 +254,8 @@ def generate_leaderboard(team_id, users, column='received'):
     leaderboard = []
     for index, user in enumerate(sorted(users, key=operator.itemgetter(column), reverse=True)[:10]):
         info = get_user_info(team_id, user['user_id'])
-        leaderboard.append('%d. %s - %d %s' % (index+1, info['user']['name'], user[column], EMOJI))
+        display_name = info['user']['profile']['display_name']
+        leaderboard.append('%d. %s - %d %s' % (index+1, display_name, user[column], EMOJI))
     return '\n'.join(leaderboard)
 
 @task
@@ -252,7 +269,7 @@ def generate_leaderboards(team_id, channel):
             given = generate_leaderboard(team_id, users, 'given')
             leaderboards = '*Received*\n\n%s\n\n*Given*\n\n%s' % (received, given)
         else:
-            leaderboards = 'nothing to see here'
+            leaderboards = 'Needs moar %s' % EMOJI
     except ClientError as exc:
         if exc.response['Error']['Code'] == 'ResourceNotFoundException':
             leaderboards = 'resetting, try again in a minute'
@@ -263,12 +280,17 @@ def generate_leaderboards(team_id, channel):
 
 @tallybot.on('app_mention')
 def app_mention_event(payload):
-    print(payload)
     event = payload['event']
     team_id = payload['team_id']
     if event.get('subtype') != 'bot_message' and not event.get('edited'):
         if event['text'] == '<@%s> leaderboard' % get_bot_id(team_id):
             generate_leaderboards(team_id, event['channel'])
+
+        elif event['text'] == '<@%s> banana' % get_bot_id(team_id):
+            post_message(team_id, random.choice(BANANA_URLS), event['channel'])
+
+        elif event['text'] == '<@%s> dayo' % get_bot_id(team_id):
+            post_message(team_id, random.choice(DAYO_URLS), event['channel'])
 
 def generate_affirmation():
     return random.choice([
@@ -343,7 +365,12 @@ def update_users(team_id, channel, giver, recipients, count):
     for recipient in recipients:
         user = update_user(table, recipient, 'received', count)
         info = get_user_info(team_id, user['user_id'])
-        report.append('%s %s has %d %s!' % (generate_affirmation(), info['user']['name'], user['received'], EMOJI))
+        if info['user']['is_bot']:
+            display_name = info['user']['profile']['real_name_normalized']
+            report.append("%s is a bot. Bots don't need %s."  % (display_name, EMOJI))
+        else:
+            display_name = info['user']['profile']['display_name']
+            report.append('%s %s has %d %s!'% (generate_affirmation(), display_name, user['received'], EMOJI))
 
     return report
 
