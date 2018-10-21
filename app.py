@@ -275,13 +275,15 @@ def app_mention_event(payload):
     event = payload['event']
     team_id = payload['team_id']
     if event.get('subtype') != 'bot_message' and not event.get('edited'):
-        if event['text'] == '<@%s> leaderboard' % get_bot_id(team_id):
+        bot_id = get_bot_id(team_id)
+
+        if event['text'] == '<@%s> leaderboard' % bot_id:
             generate_leaderboards(team_id, event['channel'])
 
-        elif event['text'] == '<@%s> banana' % get_bot_id(team_id):
+        elif event['text'] == '<@%s> banana' % bot_id:
             post_message(team_id, random.choice(BANANA_URLS), event['channel'])
 
-        elif event['text'] == '<@%s> dayo' % get_bot_id(team_id):
+        elif event['text'] == '<@%s> dayo' % bot_id:
             post_message(team_id, random.choice(DAYO_URLS), event['channel'])
 
 def generate_affirmation():
