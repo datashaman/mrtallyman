@@ -47,7 +47,7 @@ To tail the _CloudWatch_ logs:
 
     zappa tail dev
 
-The endpoint URL should be input into the _Request URL_ on your bot's Event Subscription page. The bot takes care of verifying the challenge.
+The endpoint URL with _/slack_ appended should be input into the _Request URL_ on your bot's Event Subscription page. The bot takes care of verifying the challenge.
 
 ## Operations
 
