@@ -401,13 +401,15 @@ def update_scores(team_id, event):
 
 @tallybot.on('message')
 def message_event(payload):
+    app_log('Payload %s' % payload)
+
     team_id = payload['team_id']
     event = payload['event']
     channel = event['channel']
     channel_type = event['channel_type']
-    event_text = event['text']
+    event_text = event.get('text')
 
-    if channel_type == 'channel'and 'subtype' not in event:
+    if channel_type == 'channel' and 'subtype' not in event:
         update_scores(team_id, event)
 
     elif channel_type == 'im' and event_text == 'reset!':
