@@ -371,12 +371,12 @@ def update_users(team_id, channel, giver, recipients, count):
     update_user(table, giver, 'given', count * len(recipients))
 
     for recipient in recipients:
-        user = update_user(table, recipient, 'received', count)
-        info = get_user_info(team_id, user['user_id'])
+        info = get_user_info(team_id, recipient)
         if info['user']['is_bot']:
             display_name = info['user']['profile']['real_name_normalized']
             report.append("%s is a bot. Bots don't need %s."  % (display_name, EMOJI))
         else:
+            user = update_user(table, recipient, 'received', count)
             display_name = info['user']['profile']['display_name']
             report.append('%s %s has %d %s!'% (generate_affirmation(), display_name, user['received'], EMOJI))
 
