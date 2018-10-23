@@ -27,6 +27,7 @@ DAYO_URLS = [
 ]
 
 EMOJI = ':banana:'
+REACTION = 'banana'
 
 SCOPES = [
     'channels:history',
@@ -357,7 +358,7 @@ def update_user(table, user_id, attribute, value):
 
     return user
 
-def update_users(team_id, channel, giver, recipients, count):
+def update_users(team_id, channel, giver, recipients, count, multiplier=1):
     table = get_team_table(team_id)
     table.wait_until_exists()
 
@@ -368,7 +369,7 @@ def update_users(team_id, channel, giver, recipients, count):
 
     report = []
 
-    update_user(table, giver, 'given', count * len(recipients))
+    given = 0
 
     for recipient in recipients:
         info = get_user_info(team_id, recipient)
@@ -376,14 +377,17 @@ def update_users(team_id, channel, giver, recipients, count):
             display_name = info['user']['profile']['real_name_normalized']
             report.append("%s is a bot. Bots don't need %s."  % (display_name, EMOJI))
         else:
-            user = update_user(table, recipient, 'received', count)
+            given += multiplier * count
+            user = update_user(table, recipient, 'received', multiplier * count)
             display_name = info['user']['profile']['display_name']
             report.append('%s %s has %d %s!'% (generate_affirmation(), display_name, user['received'], EMOJI))
+
+    update_user(table, giver, 'given', given)
 
     return report
 
 @task
-def update_scores(team_id, event):
+def update_scores_message(team_id, event):
     if 'message' in event:
         message = event['message']
     else:
@@ -399,6 +403,14 @@ def update_scores(team_id, event):
             text = ', '.join(report)
             post_message(team_id, text, channel)
 
+@task
+def update_scores_reaction(team_id, event):
+    if event['reaction'] == REACTION and event['user'] != event['item_user']:
+        multiplier = 1
+        if event['type'] == 'reaction_removed':
+            multiplier = -1
+        update_users(team_id, None, event['user'], [event['item_user']], multiplier)
+
 @tallybot.on('message')
 def message_event(payload):
     app_log('Payload %s' % payload)
@@ -410,13 +422,23 @@ def message_event(payload):
     event_text = event.get('text')
 
     if channel_type == 'channel' and 'subtype' not in event:
-        update_scores(team_id, event)
+        update_scores_message(team_id, event)
 
     elif channel_type == 'im' and event_text == 'reset!':
         reset_team_table(team_id, event)
 
     elif channel_type == 'im' and event_text == 'leaderboard':
         generate_leaderboards(team_id, event)
+
+@tallybot.on('reaction_added')
+def reaction_added_event(payload):
+    team_id = payload['team_id']
+    event = payload['event']
+    update_scores_reaction(team_id, event)
+
+@tallybot.on('reaction_removed')
+def reaction_removed_event(payload):
+    update_scores_reaction(team_id, event)
 
 @app.route('/slack', methods=['POST'])
 def slack():
