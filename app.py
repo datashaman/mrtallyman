@@ -438,6 +438,8 @@ def reaction_added_event(payload):
 
 @tallybot.on('reaction_removed')
 def reaction_removed_event(payload):
+    team_id = payload['team_id']
+    event = payload['event']
     update_scores_reaction(team_id, event)
 
 @app.route('/slack', methods=['POST'])
