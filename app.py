@@ -409,7 +409,7 @@ def update_scores_reaction(team_id, event):
         multiplier = 1
         if event['type'] == 'reaction_removed':
             multiplier = -1
-        update_users(team_id, None, event['user'], [event['item_user']], multiplier)
+        update_users(team_id, None, event['user'], [event['item_user']], 1, multiplier)
 
 @tallybot.on('message')
 def message_event(payload):
