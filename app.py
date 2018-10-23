@@ -28,6 +28,7 @@ DAYO_URLS = [
 
 EMOJI = ':banana:'
 REACTION = 'banana'
+TROLL_REACTION = 'troll'
 
 SCOPES = [
     'channels:history',
@@ -273,7 +274,8 @@ def generate_leaderboards(team_id, event):
         if users:
             received = generate_leaderboard(team_id, users, 'received')
             given = generate_leaderboard(team_id, users, 'given')
-            leaderboards = '*Received*\n\n%s\n\n*Given*\n\n%s' % (received, given)
+            trolls = generate_leaderboard(team_id, users, 'trolls')
+            leaderboards = '*Received*\n\n%s\n\n*Given*\n\n%s\n\n*Trolls*\n\n%s' % (received, given, trolls)
         else:
             leaderboards = 'Needs moar %s' % EMOJI
     except ClientError as exc:
@@ -386,6 +388,11 @@ def update_users(team_id, channel, giver, recipients, count, multiplier=1):
 
     return report
 
+def update_trolls(team_id, recipient, multiplier=1):
+    table = get_team_table(team_id)
+    table.wait_until_exists()
+    update_user(table, recipient, 'trolls', multiplie * 1)
+
 @task
 def update_scores_message(team_id, event):
     if 'message' in event:
@@ -410,6 +417,8 @@ def update_scores_reaction(team_id, event):
         if event['type'] == 'reaction_removed':
             multiplier = -1
         update_users(team_id, None, event['user'], [event['item_user']], 1, multiplier)
+    elif event['reaction'] == TROLL_REACTION and event['user'] != event['item_user']:
+        update_trolls(team_id, event['item_user'], multiplier)
 
 @tallybot.on('message')
 def message_event(payload):
