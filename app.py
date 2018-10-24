@@ -258,33 +258,50 @@ def reset_team_table(team_id, event):
         post_message(team_id, "Nice try, buddy!", channel)
 
 def generate_leaderboard(team_id, users, column='received'):
+    emoji = EMOJI
+    if column == 'trolls':
+        emoji = ':%s:' % TROLL_REACTION
+
     leaderboard = []
-    for index, user in enumerate(sorted(users, key=operator.itemgetter(column), reverse=True)[:10]):
+    filtered_users = [user for user in users if user.get(column, 0) > 0]
+    if not filtered_users:
+        return None
+    sorted_users = sorted(filtered_users, key=lambda u: u.get(column, 0), reverse=True)[:10]
+    for index, user in enumerate(sorted_users):
         info = get_user_info(team_id, user['user_id'])
         display_name = info['user']['profile']['display_name']
-        leaderboard.append('%d. %s - %d %s' % (index+1, display_name, user[column], EMOJI))
+        leaderboard.append('%d. %s - %d %s' % (index+1, display_name, user.get(column, 0), emoji))
     return '\n'.join(leaderboard)
 
 @task
 def generate_leaderboards(team_id, event):
+    leaderboards = []
+
     try:
         table = get_team_table(team_id)
         response = table.scan()
         users = response['Items']
         if users:
             received = generate_leaderboard(team_id, users, 'received')
+            if received:
+                leaderboards.append('*Received*\n\n%s' % received)
+
             given = generate_leaderboard(team_id, users, 'given')
+            if given:
+                leaderboards.append('*Given*\n\n%s' % given)
+
             trolls = generate_leaderboard(team_id, users, 'trolls')
-            leaderboards = '*Received*\n\n%s\n\n*Given*\n\n%s\n\n*Trolls*\n\n%s' % (received, given, trolls)
+            if trolls:
+                leaderboards.append('*Trolls*\n\n%s' % trolls)
         else:
-            leaderboards = 'Needs moar %s' % EMOJI
+            leaderboards.append('Needs moar %s' % EMOJI)
     except ClientError as exc:
         if exc.response['Error']['Code'] == 'ResourceNotFoundException':
             leaderboards = 'resetting, try again in a minute'
         else:
             raise exc
 
-    post_message(team_id, leaderboards, event['channel'])
+    post_message(team_id, '\n\n'.join(leaderboards), event['channel'])
 
 @tallybot.on('app_mention')
 def app_mention_event(payload):
@@ -337,7 +354,7 @@ def update_user(table, user_id, attribute, value):
 
     if 'Item' in response:
         user = response['Item']
-        user[attribute] += value
+        user[attribute] = user.get(attribute, 0) + value
         table.update_item(
             Key={
                 'user_id': user_id,
@@ -350,12 +367,11 @@ def update_user(table, user_id, attribute, value):
     else:
         user = {
             'user_id': user_id,
-            attribute: value
+            'given': 0,
+            'received': 0,
+            'trolls': 0,
         }
-        if attribute == 'received':
-            user['given'] = 0
-        else:
-            user['received'] = 0
+        user[attribute] = value
         table.put_item(Item=user)
 
     return user
@@ -391,7 +407,7 @@ def update_users(team_id, channel, giver, recipients, count, multiplier=1):
 def update_trolls(team_id, recipient, multiplier=1):
     table = get_team_table(team_id)
     table.wait_until_exists()
-    update_user(table, recipient, 'trolls', multiplie * 1)
+    update_user(table, recipient, 'trolls', multiplier * 1)
 
 @task
 def update_scores_message(team_id, event):
@@ -412,10 +428,10 @@ def update_scores_message(team_id, event):
 
 @task
 def update_scores_reaction(team_id, event):
+    multiplier = 1
+    if event['type'] == 'reaction_removed':
+        multiplier = -1
     if event['reaction'] == REACTION and event['user'] != event['item_user']:
-        multiplier = 1
-        if event['type'] == 'reaction_removed':
-            multiplier = -1
         update_users(team_id, None, event['user'], [event['item_user']], 1, multiplier)
     elif event['reaction'] == TROLL_REACTION and event['user'] != event['item_user']:
         update_trolls(team_id, event['item_user'], multiplier)
