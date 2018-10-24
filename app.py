@@ -1,5 +1,4 @@
 import boto3
-import operator
 import re
 import random
 import requests
@@ -7,13 +6,10 @@ import tallybot
 import os
 import settings
 import sys
-import urllib
-import uuid
 sys.stdout = sys.stderr
 
 from botocore.exceptions import ClientError
 from flask import Flask, abort, redirect, request, url_for
-from multiprocessing import Process
 from slackclient import SlackClient
 from zappa.async import task
 
@@ -38,7 +34,10 @@ SCOPES = [
 app = Flask(__name__)
 app.secret_key = os.environ['FLASK_SECRET_KEY']
 
-dynamodb = boto3.resource('dynamodb')
+endpoint_url = os.environ.get('DYNAMODB_ENDPOINT_URL')
+if not endpoint_url:
+    endpoint_url = None
+dynamodb = boto3.resource('dynamodb', endpoint_url=endpoint_url)
 
 def memoize(func):
     def decorator_memoize(*key):
@@ -303,6 +302,36 @@ def generate_leaderboards(team_id, event):
 
     post_message(team_id, '\n\n'.join(leaderboards), event['channel'])
 
+@task
+def generate_me(team_id, event):
+    try:
+        table = get_team_table(team_id)
+        response = table.get_item(
+            Key={
+                'user_id': event['user'],
+            }
+        )
+
+        text = ['nothing to see here']
+
+        if 'Item' in response:
+            text = []
+
+            user = response['Item']
+            for column in ['received', 'given', 'trolls']:
+                if user.get(column, 0) > 0:
+                    if column == 'trolls':
+                        text.append('received %d :%s:' % (user['trolls'], TROLL_REACTION))
+                    else:
+                        text.append('%s %d %s' % (column, user[column], EMOJI))
+    except ClientError as exc:
+        if exc.response['Error']['Code'] == 'ResourceNotFoundException':
+            text = ['resetting, try again in a minute']
+        else:
+            raise exc
+
+    post_message(team_id, 'You have ' + ', '.join(text), event['channel'])
+
 @tallybot.on('app_mention')
 def app_mention_event(payload):
     event = payload['event']
@@ -311,8 +340,13 @@ def app_mention_event(payload):
         bot_id = get_bot_id(team_id)
         channel = event['channel']
 
-        if event['text'] == '<@%s> leaderboard' % bot_id:
+        if event['text'] in ['<@%s> leaderboard' % bot_id,
+                             '<@%s> tally' % bot_id,
+                             '<@%s> bananas' % bot_id]:
             generate_leaderboards(team_id, event)
+
+        elif event['text'] in ['<@%s> tally me' % bot_id]:
+            generate_me(team_id, event)
 
         elif event['text'] == '<@%s> banana' % bot_id:
             post_message(team_id, random.choice(BANANA_URLS), channel)
@@ -378,7 +412,6 @@ def update_user(table, user_id, attribute, value):
 
 def update_users(team_id, channel, giver, recipients, count, multiplier=1):
     table = get_team_table(team_id)
-    table.wait_until_exists()
 
     recipients = set(recipients)
 
@@ -406,7 +439,6 @@ def update_users(team_id, channel, giver, recipients, count, multiplier=1):
 
 def update_trolls(team_id, recipient, multiplier=1):
     table = get_team_table(team_id)
-    table.wait_until_exists()
     update_user(table, recipient, 'trolls', multiplier * 1)
 
 @task
@@ -442,7 +474,6 @@ def message_event(payload):
 
     team_id = payload['team_id']
     event = payload['event']
-    channel = event['channel']
     channel_type = event['channel_type']
     event_text = event.get('text')
 
@@ -452,8 +483,11 @@ def message_event(payload):
     elif channel_type == 'im' and event_text == 'reset!':
         reset_team_table(team_id, event)
 
-    elif channel_type == 'im' and event_text == 'leaderboard':
+    elif channel_type == 'im' and event_text in ['bananas', 'leaderboard', 'tally']:
         generate_leaderboards(team_id, event)
+
+    elif channel_type == 'im' and event_text == 'tally me':
+        generate_me(team_id, event)
 
 @tallybot.on('reaction_added')
 def reaction_added_event(payload):
