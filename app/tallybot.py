@@ -1,6 +1,5 @@
 import hashlib
 import hmac
-import os
 import time
 
 handlers = {}
@@ -14,8 +13,13 @@ def on(name):
         else:
             if name not in handlers:
                 handlers[name] = []
-            handlers[name].append(func)
-
+            found = False
+            for handler in handlers[name]:
+                if (handler.__module__, handler.__name__) == (func.__module__, func.__name__):
+                    found = True
+                    break
+            if not found:
+                handlers[name].append(func)
         return func
     return decorator_on
 
@@ -35,17 +39,20 @@ def handle_event(payload):
         return True
     return False
 
-def valid_request(request):
+def generate_signature(timestamp, slack_signing_secret, data):
+    key = bytes(slack_signing_secret, 'utf-8')
+    msg = ('v0:' + timestamp + ':' + data).encode('utf-8')
+    return 'v0=' + hmac.new(key, msg, hashlib.sha256).hexdigest()
+
+def valid_request(app, request):
     timestamp = request.headers['X-Slack-Request-Timestamp']
     if abs(time.time() - float(timestamp)) > 60 * 5:
         return False
-    key = bytes(os.environ['SLACK_SIGNING_SECRET'], 'utf-8')
-    msg = ('v0:' + timestamp + ':' + request.get_data().decode()).encode('utf-8')
-    signature = 'v0=' + hmac.new(key, msg, hashlib.sha256).hexdigest()
+    signature = generate_signature(timestamp, app.config['SLACK_SIGNING_SECRET'], request.get_data().decode())
     return hmac.compare_digest(signature, request.headers['X-Slack-Signature'])
 
-def handle(request):
-    if valid_request(request):
+def handle(app, request):
+    if valid_request(app, request):
         if 'command' in request.form:
             return handle_command(request.form)
 
