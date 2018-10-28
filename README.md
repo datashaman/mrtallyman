@@ -9,6 +9,8 @@ Setup an app and a bot on Slack, deploy the app to a host somewhere. Verify the 
 - `app_mention`
 - `message.channels`
 - `message.im`
+- `reaction_added`
+- `reaction_removed`
 
 Grant the following OAuth scopes to the bot:
 
@@ -28,9 +30,6 @@ Installation (testing and development):
 Configuration for development:
 
     cp .env.example .env
-
-Configuration for development:
-
     cp instance/example.py instance/development.py
 
 Set `FLASK_INSTANCE` in your environment to use the instance configuration you've defined.
@@ -101,6 +100,6 @@ All of the above app mentions can also be used in a private channel with the bot
     tallyme
     tally me
 
-If you are an admin you can privately message the bot to reset the leaderboards:
+If you are an admin in the workspace or your username is in the comma-separated environment variable _ADMINS_, you can privately message the bot to reset the leaderboards:
 
     reset!
