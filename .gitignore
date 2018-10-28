@@ -1,6 +1,8 @@
-/*.zip
-build/
-build.zip
+/.cache/
+/.coverage
+/dynamodb_local_latest.tar.gz
 .env
-__pycache__
+__pycache__/
+/.pytest_cache/
 zappa_settings.json
+/*.zip
