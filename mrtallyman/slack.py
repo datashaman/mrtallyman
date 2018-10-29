@@ -1,6 +1,10 @@
 import hashlib
 import hmac
+import os
 import time
+
+from slackclient import SlackClient
+from .decorators import memoize
 
 handlers = {}
 
@@ -8,34 +12,46 @@ def on(name):
     def decorator_on(func):
         global handlers
 
-        if name[0] == '/':
-            handlers[name] = func
-        else:
-            if name not in handlers:
-                handlers[name] = []
-            found = False
-            for handler in handlers[name]:
-                if (handler.__module__, handler.__name__) == (func.__module__, func.__name__):
-                    found = True
-                    break
-            if not found:
-                handlers[name].append(func)
+        if name not in handlers:
+            handlers[name] = []
+        found = False
+        for handler in handlers[name]:
+            if (handler.__module__, handler.__name__) == (func.__module__, func.__name__):
+                found = True
+                break
+        if not found:
+            handlers[name].append(func)
         return func
     return decorator_on
 
-def handle_command(form):
-    command = form.get('command')
-    if command in handlers:
-        return handlers[command](form)
-    return False
+@memoize
+def get_client(team_id):
+    from .db import get_bot_token
+    token = get_bot_token(team_id)
+    return SlackClient(token)
+
+@memoize
+def get_bot_id(team_id):
+    response = get_client(team_id).api_call('auth.test')
+    return response['user_id']
+
+def get_bot_by_token(token):
+    client = SlackClient(token)
+    return client.api_call('auth.test')
+
+def post_message(team_id, text, channel):
+    get_client(team_id).api_call(
+        'chat.postMessage',
+        channel=channel,
+        text=text
+    )
 
 def handle_event(payload):
     event_type = payload['event']['type']
 
     if event_type in handlers:
         for func in handlers[event_type]:
-            if func(payload) == False:
-                return False
+            func(payload)
         return True
     return False
 
@@ -48,14 +64,11 @@ def valid_request(app, request):
     timestamp = request.headers['X-Slack-Request-Timestamp']
     if abs(time.time() - float(timestamp)) > 60 * 5:
         return False
-    signature = generate_signature(timestamp, app.config['SLACK_SIGNING_SECRET'], request.get_data().decode())
+    signature = generate_signature(timestamp, os.environ['SLACK_SIGNING_SECRET'], request.get_data().decode())
     return hmac.compare_digest(signature, request.headers['X-Slack-Signature'])
 
-def handle(app, request):
+def handle_request(app, request):
     if valid_request(app, request):
-        if 'command' in request.form:
-            return handle_command(request.form)
-
         payload = request.get_json()
 
         if payload['type'] == 'event_callback':

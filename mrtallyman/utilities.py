@@ -1,4 +1,4 @@
-from app.slack import post_message
+from .slack import post_message
 
 def team_log(team_id, message, channel=None, level='debug'):
     if channel:

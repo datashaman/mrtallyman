@@ -4,27 +4,29 @@ import random
 import re
 import requests
 
-from flask import Flask, abort, redirect, request, url_for
+from flask import Flask, abort, redirect, render_template, request, url_for
 from flask.cli import with_appcontext
+from flask_menu import Menu, register_menu
 
-from app import tallybot
-from app.db import (init_db,
+from .db import (init_db,
                     create_team_table,
                     delete_team_table,
-                    get_table,
-                    update_config,
-                    update_user)
-from app.constants import (AFFIRMATIONS,
+                    get_team_user,
+                    get_team_users,
+                    update_team_config,
+                    update_team_user)
+from .constants import (AFFIRMATIONS,
                            BANANA_URLS,
                            DAYO_URLS,
                            EMOJI,
                            REACTION,
                            TROLLS)
-from app.decorators import memoize, task
-from app.slack import (get_bot_id,
+from .decorators import memoize, task
+from .slack import (get_bot_id,
                        get_client,
+                       handle_request,
+                       on,
                        post_message)
-from botocore.exceptions import ClientError
 
 def generate_leaderboard(team_id, users, column='received'):
     emoji = EMOJI
@@ -50,34 +52,27 @@ def get_user_info(team_id, user_id):
 def generate_leaderboards(team_id, event):
     leaderboards = []
 
-    try:
-        table = get_table(team_id)
-        response = table.scan()
-        users = response['Items']
-        if users:
-            received = generate_leaderboard(team_id, users, 'received')
-            if received:
-                leaderboards.append('*Received*\n\n%s' % received)
+    users = get_team_users(team_id)
 
-            given = generate_leaderboard(team_id, users, 'given')
-            if given:
-                leaderboards.append('*Given*\n\n%s' % given)
+    if users:
+        received = generate_leaderboard(team_id, users, 'received')
+        if received:
+            leaderboards.append('*Received*\n\n%s' % received)
 
-            trolls = generate_leaderboard(team_id, users, 'trolls')
-            if trolls:
-                leaderboards.append('*Trolls*\n\n%s' % trolls)
-        else:
-            leaderboards.append('Needs moar %s' % EMOJI)
-    except ClientError as exc:
-        if exc.response['Error']['Code'] == 'ResourceNotFoundException':
-            leaderboards = ['resetting, try again in a minute']
-        else:
-            raise exc
+        given = generate_leaderboard(team_id, users, 'given')
+        if given:
+            leaderboards.append('*Given*\n\n%s' % given)
+
+        trolls = generate_leaderboard(team_id, users, 'trolls')
+        if trolls:
+            leaderboards.append('*Trolls*\n\n%s' % trolls)
+    else:
+        leaderboards.append('Needs moar %s' % EMOJI)
 
     post_message(team_id, '\n\n'.join(leaderboards), event['channel'])
 
 @task
-def reset_team_table(team_id, event, token):
+def reset_team_table(team_id, event):
     channel = event['channel']
 
     response = get_client(team_id).api_call(
@@ -95,43 +90,29 @@ def reset_team_table(team_id, event, token):
 
 @task
 def generate_me(team_id, event):
-    try:
-        table = get_table(team_id)
-        response = table.get_item(
-            Key={
-                'user_id': event['user'],
-            }
-        )
+    user = get_team_user(team_id, event['user'])
 
-        text = 'nothing to see here'
+    text = 'nothing to see here'
 
-        if 'Item' in response:
-            text = []
+    if user:
+        text = []
 
-            user = response['Item']
-            for column in ['received', 'given', 'trolls']:
-                if user.get(column, 0) > 0:
-                    if column == 'trolls':
-                        text.append('received %d :%s:' % (user['trolls'], TROLLS[0]))
-                    else:
-                        text.append('%s %d %s' % (column, user[column], EMOJI))
+        for column in ['received', 'given', 'trolls']:
+            if user.get(column, 0) > 0:
+                if column == 'trolls':
+                    text.append('received %d :%s:' % (user['trolls'], TROLLS[0]))
+                else:
+                    text.append('%s %d %s' % (column, user[column], EMOJI))
 
-            if text:
-                text = 'You have ' + ', '.join(text)
-            else:
-                text = ''
-    except ClientError as exc:
-        if exc.response['Error']['Code'] == 'ResourceNotFoundException':
-            text = 'resetting, try again in a minute'
+        if text:
+            text = 'You have ' + ', '.join(text)
         else:
-            raise exc
+            text = ''
 
     if text:
         post_message(team_id, text, event['channel'])
 
 def update_users(team_id, channel, giver, recipients, count, multiplier=1, report=True):
-    table = get_table(team_id)
-
     recipients = set(recipients)
 
     if giver in recipients:
@@ -139,6 +120,7 @@ def update_users(team_id, channel, giver, recipients, count, multiplier=1, repor
 
     if report:
         output = []
+
     given = 0
 
     for recipient in recipients:
@@ -149,7 +131,7 @@ def update_users(team_id, channel, giver, recipients, count, multiplier=1, repor
                 output.append("%s is a bot. Bots don't need %s."  % (display_name, EMOJI))
         else:
             given += multiplier * count
-            user = update_user(table, recipient, 'received', multiplier * count)
+            user = update_team_user(team_id, recipient, 'received', multiplier * count)
 
             if report:
                 display_name = info['user']['profile']['display_name']
@@ -159,16 +141,15 @@ def update_users(team_id, channel, giver, recipients, count, multiplier=1, repor
                     affirmation = random.choice(AFFIRMATIONS)
                 output.append('%s %s has %d %s!'% (affirmation, display_name, user['received'], EMOJI))
 
-    update_user(table, giver, 'given', given)
+    update_team_user(team_id, giver, 'given', given)
 
     if report:
         return output
 
 def update_trolls(team_id, recipient, multiplier=1):
-    table = get_table(team_id)
     info = get_user_info(team_id, recipient)
     if not info['user']['is_bot']:
-        update_user(table, recipient, 'trolls', multiplier * 1)
+        update_team_user(team_id, recipient, 'trolls', multiplier * 1)
 
 @task
 def update_scores_message(team_id, event):
@@ -198,9 +179,10 @@ def update_scores_reaction(team_id, event):
         update_trolls(team_id, event['item_user'], multiplier)
 
 def create_app(config=None):
-    app = Flask(__name__, instance_relative_config=True)
+    from dotenv import load_dotenv
+    load_dotenv()
 
-    app.config.from_envvar('FLASK_INSTANCE', silent=True)
+    app = Flask(__name__)
 
     if config:
         app.config.from_mapping(config)
@@ -208,9 +190,11 @@ def create_app(config=None):
     with app.app_context():
         init_db(app)
 
+    Menu(app)
+
     @app.route('/slack', methods=['POST'])
     def slack():
-        response = tallybot.handle(app, request)
+        response = handle_request(app, request)
 
         if response is True:
             return ''
@@ -225,8 +209,8 @@ def create_app(config=None):
             abort(403)
 
         data = {
-            'client_id': app.config['SLACK_CLIENT_ID'],
-            'client_secret': app.config['SLACK_CLIENT_SECRET'],
+            'client_id': os.environ['SLACK_CLIENT_ID'],
+            'client_secret': os.environ['SLACK_CLIENT_SECRET'],
             'code': request.args['code'],
         }
 
@@ -239,7 +223,7 @@ def create_app(config=None):
                 'team_name': data['team_name'],
                 'bot_token': data['bot']['bot_access_token'],
             }
-            update_config(data['team_id'], config)
+            update_team_config(data['team_id'], **config)
             create_team_table(data['team_id'])
 
             return redirect(url_for('thanks'))
@@ -248,9 +232,24 @@ def create_app(config=None):
 
     @app.route('/thanks')
     def thanks():
-        return 'Thanks for installing tallybot!'
+        return render_template('thanks.html')
 
-    @tallybot.on('app_mention')
+    @app.route('/')
+    @register_menu(app, '.', 'Home')
+    def home():
+        return render_template('home.html')
+
+    @app.route('/how-it-works')
+    @register_menu(app, '.how-it-works', 'How It Works')
+    def how_it_works():
+        return render_template('how-it-works.html')
+
+    @app.route('/privacy')
+    @register_menu(app, '.privacy', 'Privacy')
+    def privacy():
+        return render_template('privacy.html')
+
+    @on('app_mention')
     def app_mention_event(payload):
         event = payload['event']
         if event.get('subtype') != 'bot_message' and not event.get('edited'):
@@ -273,7 +272,7 @@ def create_app(config=None):
             elif event['text'] == '<@%s> dayo' % bot_id:
                 post_message(team_id, random.choice(DAYO_URLS), channel)
 
-    @tallybot.on('message')
+    @on('message')
     def message_event(payload):
         team_id = payload['team_id']
         event = payload['event']
@@ -284,7 +283,7 @@ def create_app(config=None):
             update_scores_message(team_id, event)
 
         elif channel_type == 'im' and event_text == 'reset!':
-            reset_team_table(team_id, event, app.config['SLACK_API_TOKEN'])
+            reset_team_table(team_id, event)
 
         elif channel_type == 'im' and event_text in ['bananas', 'leaderboard', 'tally']:
             generate_leaderboards(team_id, event)
@@ -292,13 +291,13 @@ def create_app(config=None):
         elif channel_type == 'im' and event_text in ['tally me', 'tallyme']:
             generate_me(team_id, event)
 
-    @tallybot.on('reaction_added')
+    @on('reaction_added')
     def reaction_added_event(payload):
         team_id = payload['team_id']
         event = payload['event']
         update_scores_reaction(team_id, event)
 
-    @tallybot.on('reaction_removed')
+    @on('reaction_removed')
     def reaction_removed_event(payload):
         team_id = payload['team_id']
         event = payload['event']

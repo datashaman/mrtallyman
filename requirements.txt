@@ -1,5 +1,6 @@
-boto3
 flask
+flask-menu
+pymysql
+python-dotenv
 requests
 slackclient
-zappa
