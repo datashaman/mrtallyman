@@ -46,6 +46,7 @@ def create_config_table():
         `name` varchar(255),
         `access_token` varchar(255),
         `bot_token` varchar(255),
+        `bot_user_id` varchar(255),
         primary key (`id`),
         unique key (`name`)
     );''' % get_table_name('config')

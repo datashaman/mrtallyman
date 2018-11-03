@@ -225,6 +225,7 @@ def create_app(config=None):
                 'access_token': data['access_token'],
                 'name': data['team_name'],
                 'bot_token': data['bot']['bot_access_token'],
+                'bot_user_id': data['bot']['bot_user_id'],
             }
             update_team_config(data['team_id'], **config)
             create_team_table(data['team_id'])
