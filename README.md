@@ -12,8 +12,10 @@ Setup an app and a bot on Slack, deploy the app to a host somewhere. Verify the 
 
 Grant the following OAuth scopes to the bot:
 
+- `bot`
 - `channels:history`
-- `channels:read`
+- `im:history`
+- `reactions:read`
 
 ## Local Development
 
