@@ -2,8 +2,6 @@
 
 Slack bot that tallies scores for a team. Uses MySQL to store results and multiprocessing.Process to handle long running tasks.
 
-Requires AWS credentials to be setup on the host.
-
 Setup an app and a bot on Slack, deploy the app to a host somewhere. Verify the Request URL and subscribe to the following events:
 
 - `app_mention`
