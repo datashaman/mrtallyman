@@ -6,6 +6,9 @@ body {
 .bg-dark {
     background-color: #2f2f2f !important;
 }
+.content {
+    padding-bottom: 20px;
+}
 .content a {
     color: inherit;
     text-decoration: underline;
@@ -21,4 +24,10 @@ body {
 }
 #how-it-works {
     font-size: 24pt;
+}
+.card-chat {
+    color: #000;
+}
+.card-chat .mention {
+    color: blue;
 }

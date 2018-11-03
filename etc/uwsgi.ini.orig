@@ -1,6 +1,6 @@
 [uwsgi]
 chdir = /home/mrtallyman/mrtallyman
-chmod-socket = 666
+chmod-socket = 777
 chown-socket = mrtallyman:mrtallyman
 enable-threads = true
 home = /home/mrtallyman/.virtualenvs/mrtallyman

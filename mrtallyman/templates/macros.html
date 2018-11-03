@@ -1,0 +1,9 @@
+{%- macro banana(width, height, alt) -%}
+<img src="{{ url_for('static', filename='images/banana-%dx%d.png' % (width, height)) }}"
+     alt="{{ alt }}">
+{%- endmacro -%}
+
+{%- macro troll(width, height, alt) -%}
+<img src="{{ url_for('static', filename='images/troll-%dx%d.png' % (width, height)) }}"
+     alt="{{ alt }}">
+{%- endmacro -%}

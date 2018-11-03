@@ -40,3 +40,7 @@ mysql:
 mysql-recreate:
 	mysqladmin -u$(MYSQL_USER) -p$(MYSQL_PASSWORD) -h$(MYSQL_HOST) drop $(MYSQL_DB)
 	mysqladmin -u$(MYSQL_USER) -p$(MYSQL_PASSWORD) -h$(MYSQL_HOST) create $(MYSQL_DB)
+
+deploy:
+	cat scripts/deploy.sh | ssh $(DEPLOY_HOST) 'cat>deploy.sh'
+	ssh $(DEPLOY_HOST) "bash deploy.sh $(DEPLOY_BRANCH)"

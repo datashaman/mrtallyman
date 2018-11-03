@@ -1,5 +1,4 @@
-{% set app_title = 'mrtallyman' %}
-
+{%- set app_title = 'mrtallyman' -%}
 <!DOCTYPE html>
 <html lang="en">
 
@@ -9,7 +8,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
         <meta name="description" content="">
         <meta name="author" content="">
-        <title>{% block title %}{% endblock %} - {{ app_title }}</title>
+        <title>{{ '%s - %s' % (title, app_title) if title else app_title }}</title>
         <link rel="stylesheet"
               href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css"
               integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
@@ -18,6 +17,8 @@
               href="{{ url_for('static', filename='styles/app.css') }}">
         <link rel="stylesheet"
               href="https://fonts.googleapis.com/css?family=Lato">
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-32x32.png') }}" sizes="32x32" />
+        <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-16x16.png') }}" sizes="16x16" />
         {% block styles %}{% endblock %}
         {% block scripts_head %}{% endblock %}
     </head>
@@ -25,7 +26,7 @@
     <body>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark static-top">
             <div class="container">
-                <a class="navbar-brand" href="{{ url_for('home') }}">{{ app_title }}</a>
+                <a class="navbar-brand" href="{{ url_for('home') }}">mrtallyman</a>
                 <button class="navbar-toggler"
                         type="button"
                         data-toggle="collapse"
@@ -47,6 +48,9 @@
                             </li>
                         {%- endfor -%}
                     </ul>
+                    <a href="https://twitter.com/mrtallyman_bot" title="@mrtallyman_bot at twitter.com">
+                        <img src="{{ url_for('static', filename='images/twitter.png') }}" alt="twitter">
+                    </a>
                 </div>
             </div>
         </nav>

@@ -244,10 +244,10 @@ def create_app(config=None):
     def how_it_works():
         return render_template('how-it-works.html')
 
-    @app.route('/privacy')
-    @register_menu(app, '.privacy', 'Privacy')
-    def privacy():
-        return render_template('privacy.html')
+    @app.route('/privacy-policy')
+    @register_menu(app, '.privacy-policy', 'Privacy Policy')
+    def privacy_policy():
+        return render_template('privacy-policy.html')
 
     @on('app_mention')
     def app_mention_event(payload):

@@ -1,0 +1,102 @@
+{% extends 'layout.html' %}
+{% import 'macros.html' as m %}
+{% set title = 'privacy policy' %}
+
+{% block content %}
+    <h1>Privacy Policy</h1>
+
+    <p>
+        <em>datashaman</em> (“we”, “our” or “us”) operates the
+        <em>mrtallyman</em> website https://mrtallyman.datashaman.com
+        (here and after referred to as the “Website”) and provides
+        the mrtallyman Slack bot (here and after referred to as
+        the “Service”).
+    </p>
+
+    <ol>
+        <li>
+            <h2>What information do we collect?</h2>
+
+            <ul>
+                <li>
+                    Team ID, name and bot access tokens when you or another user
+                    enables the bot for your team. This is stored to enable the
+                    Service to operate for that team.
+                </li>
+                <li>
+                    User IDs, names and avatars are looked up from Slack to display
+                    leaderboards and scores. Only user IDs are stored to allocate
+                    the scores.
+                </li>
+                <li>
+                    Private messages to the bot or an @-mention in a channel
+                    where the bot is present are received by the service and used
+                    to accumulate and store totals, take actions and formulate a response.
+                </li>
+                <li>
+                    The only personally identifiable information stored is the user ID,
+                    associated with the user totals for {{ m.banana(32, 32, 'bananas') }}
+                    and {{ m.troll(32, 32, 'trolls') }}.
+                </li>
+            </ul>
+        </li>
+
+        <li>
+            <h3>Cookies</h3>
+
+            <p>
+                Our Website and Service may use <em>cookies</em> to enhance your user
+                experience. Your web browser may place cookies on your hard drive for
+                record-keeping purposes and sometimes to track information about you.
+                You may choose to set your web browser to reject cookies, or to alert
+                you when cookies are being sent. If you do so, please note that some
+                parts of the Website may not function properly.
+
+                Please also note that <em>cookies</em> are used to collect general usage
+                and volume statistical information that does not include personal information.
+            </p>
+        </li>
+
+        <li>
+            <h3>Links to external sites</h3>
+
+            <p>
+                Our Website may include links to other web pages whose privacy practices
+                may differ from ours. If you submit personal information to any of those
+                sites, your information is governed by their privacy policies.
+            </p>
+
+            <p>
+                We encourage you to carefully read a privacy policy of any website you visit.
+            </p>
+        </li>
+
+        <li>
+            <h3>Browser information</h3>
+
+            <p>
+                As is true of most sites, we automatically gather information about your computer
+                such as your IP address, browser type, referring/exit pages, and operating system.
+            </p>
+        </li>
+
+        <li>
+            <h3>How and with whom is collected information stored?</h3>
+
+            <p>
+                We do not disclose the information collected to anyone outside your team. We use
+                analytical data (which is not personally identifiable) to improve the service.
+            </p>
+
+            <p>
+                We store the collected information on a third-party hosting service, <em>Digital Ocean</em>.
+            </p>
+
+            <p>
+                Industry standard techniques including firewalls and encryption in transit are used
+                to ensure the security of the collected information.
+            </p>
+    </ol>
+
+    <b>Effective Date</b>: <em>November 3, 2018</em>
+{% endblock %}
