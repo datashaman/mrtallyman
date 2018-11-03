@@ -223,7 +223,7 @@ def create_app(config=None):
         if data['ok']:
             config = {
                 'access_token': data['access_token'],
-                'team_name': data['team_name'],
+                'name': data['team_name'],
                 'bot_token': data['bot']['bot_access_token'],
             }
             update_team_config(data['team_id'], **config)
