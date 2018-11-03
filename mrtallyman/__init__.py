@@ -21,12 +21,12 @@ from .constants import (AFFIRMATIONS,
                            EMOJI,
                            REACTION,
                            TROLLS)
+from .db import get_bot_id
 from .decorators import memoize, task
-from .slack import (get_bot_id,
-                       get_client,
-                       handle_request,
-                       on,
-                       post_message)
+from .slack import (get_client,
+                    handle_request,
+                    on,
+                    post_message)
 
 def generate_leaderboard(team_id, users, column='received'):
     emoji = EMOJI
@@ -221,11 +221,13 @@ def create_app(config=None):
         data = response.json()
 
         if data['ok']:
+            print(data)
             config = {
                 'access_token': data['access_token'],
-                'name': data['team_name'],
-                'bot_token': data['bot']['bot_access_token'],
+                'bot_access_token': data['bot']['bot_access_token'],
                 'bot_user_id': data['bot']['bot_user_id'],
+                'team_name': data['team_name'],
+                'user_id': data['user_id'],
             }
             update_team_config(data['team_id'], **config)
             create_team_table(data['team_id'])

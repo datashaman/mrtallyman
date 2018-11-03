@@ -5,7 +5,6 @@ from .decorators import memoize
 from .utilities import team_log
 from .slack import get_bot_by_token
 from contextlib import contextmanager
-from flask import current_app, g
 from pymysql.err import ProgrammingError
 from slackclient import SlackClient
 
@@ -28,11 +27,20 @@ def db_cursor():
 def get_table_name(suffix):
     return 'team_%s' % suffix
 
-def get_bot_token(team_id):
+@memoize
+def get_bot_access_token(team_id):
     team = get_team_config(team_id)
 
     if team:
-        return team['bot_token']
+        return team['bot_access_token']
+
+@memoize
+def get_bot_id(team_id):
+    team = get_team_config(team_id)
+
+    if team:
+        if team['bot_user_id']:
+            return team['bot_user_id']
 
 def create_config_table():
     table_name = get_table_name('config')
@@ -43,12 +51,13 @@ def create_config_table():
     sql = '''
     CREATE TABLE `%s` (
         `id` varchar(255) not null,
-        `name` varchar(255),
+        `team_name` varchar(255),
         `access_token` varchar(255),
-        `bot_token` varchar(255),
+        `bot_access_token` varchar(255),
         `bot_user_id` varchar(255),
+        `user_id` varchar(255),
         primary key (`id`),
-        unique key (`name`)
+        unique key (`team_name`)
     );''' % get_table_name('config')
 
     with db_cursor() as cursor:
@@ -148,12 +157,14 @@ def update_team_config(team_id, **attrs):
         args = attrs
         args['id'] = team_id
     else:
-        sql = 'INSERT INTO `team_config` (id, name, access_token, bot_token) values (%(id)s, %(name)s, %(access_token)s, %(bot_token)s)'
+        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(user_id)s)'
         team = {
             'id': team_id,
-            'name': '',
+            'team_name': '',
             'access_token': '',
-            'bot_token': '',
+            'bot_access_token': '',
+            'bot_user_id': '',
+            'user_id': '',
         }
         args = team
         args.update(attrs)
@@ -208,6 +219,9 @@ def init_db(app):
     create_config_table()
 
     token = os.environ['SLACK_API_TOKEN']
-    bot = get_bot_by_token(token)
-    create_team_table(bot['team_id'])
-    update_team_config(bot['team_id'], name=bot['team'], bot_token=token)
+    client = SlackClient(token)
+    response = client.api_call('auth.test')
+    if not response['ok']:
+        abort(400)
+    create_team_table(response['team_id'])
+    update_team_config(response['team_id'], team_name=response['team'], bot_access_token=token, bot_user_id=response['user_id'])

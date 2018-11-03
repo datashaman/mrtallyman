@@ -26,14 +26,9 @@ def on(name):
 
 @memoize
 def get_client(team_id):
-    from .db import get_bot_token
-    token = get_bot_token(team_id)
+    from .db import get_bot_access_token
+    token = get_bot_access_token(team_id)
     return SlackClient(token)
-
-@memoize
-def get_bot_id(team_id):
-    response = get_client(team_id).api_call('auth.test')
-    return response['user_id']
 
 def get_bot_by_token(token):
     client = SlackClient(token)
