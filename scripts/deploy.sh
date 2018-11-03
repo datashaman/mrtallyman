@@ -26,6 +26,7 @@ cd mrtallyman
 sudo chown -R mrtallyman:mrtallyman .
 
 $MRTALLYMAN git fetch
+$MRTALLYMAN git clean -fd
 $MRTALLYMAN git checkout origin/$DEPLOY_BRANCH
 
 if [ ! -e .env ]; then
