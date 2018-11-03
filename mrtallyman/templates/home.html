@@ -1,5 +1,8 @@
 {% extends 'layout.html' %}
+
 {% import 'macros.html' as m %}
+
+{% set page_description = 'An easy fun way to acknowledge good work and deeds on Slack. Give your team members the recognition they deserve. Install mrtallyman Slack bot.' %}
 
 {% block styles %}
 <style>
@@ -10,14 +13,13 @@
 #list-bananas li, #list-trolls li {
     line-height: 32px;
     padding-left: 40px;
+    background-repeat: no-repeat;
 }
 #list-bananas li {
     background-image: url('{{ url_for('static', filename='images/banana-32x32.png') }}');
-    background-repeat: no-repeat;
 }
 #list-trolls li {
     background-image: url('{{ url_for('static', filename='images/troll-32x32.png') }}');
-    background-repeat: no-repeat;
 }
 </style>
 {% endblock %}
@@ -56,8 +58,7 @@
         </div>
     </div>
     <div class="col-image col-md-4 text-right">
-        <img src="{{ url_for('static', filename='images/monkey-385x385.png') }}"
-             alt="monkey">
+        <img src="{{ url_for('static', filename='images/monkey-385x385.png') }}" alt="monkey">
     </div>
 </div>
 {% endblock %}
