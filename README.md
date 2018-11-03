@@ -1,6 +1,6 @@
-# tallybot
+# mrtallyman
 
-Slack bot that tallies scores for a team. Uses DynamoDB to store results and zappa.task to spawn long-running threads.
+Slack bot that tallies scores for a team. Uses MySQL to store results and multiprocessing.Process to handle long running tasks.
 
 Requires AWS credentials to be setup on the host.
 
@@ -21,42 +21,21 @@ Grant the following OAuth scopes to the bot:
 
 Installation (production):
 
-    mkvirtualenv -r requirements.txt tallybot
+    mkvirtualenv -r requirements.txt mrtallyman
 
 Installation (testing and development):
 
-    mkvirtualenv -r requirements-testing.txt tallybot
+    mkvirtualenv -r requirements-testing.txt mrtallyman
 
 Configuration for development:
 
     cp .env.example .env
-    cp instance/example.py instance/development.py
 
-Set `FLASK_INSTANCE` in your environment to use the instance configuration you've defined.
+Edit the .env to match your app's details.
 
 Running:
 
     flask run
-
-## AWS Lambda Development
-
-Installation:
-
-    zappa init
-
-First time deployment of the lambda:
-
-    zappa deploy dev
-
-Updating the running lambda with new changes:
-
-    zappa update dev
-
-To tail the _CloudWatch_ logs:
-
-    zappa tail dev
-
-The endpoint URL with _/slack_ appended should be input into the _Request URL_ on your bot's Event Subscription page. The bot takes care of verifying the challenge.
 
 ## Operations
 
@@ -79,9 +58,9 @@ A user cannot reward themselves or bot users, either by app mentions or reaction
 
 To see the leaderboard use one of the following:
 
-    @tallybot bananas
-    @tallybot leaderboard
-    @tallybot tally
+    @mrtallyman bananas
+    @mrtallyman leaderboard
+    @mrtallyman tally
 
 The leaderboard shows the names of the top users who've given and received rewards since the last table reset, as well as the _troll_ scores.
 
@@ -89,8 +68,8 @@ It displays names instead of user mentions to avoid notification fatigue when so
 
 To see your own scores use one of the following:
 
-    @tallybot tallyme
-    @tallybot tally me
+    @mrtallyman tallyme
+    @mrtallyman tally me
 
 All of the above app mentions can also be used in a private channel with the bot (without the bot prefix):
 

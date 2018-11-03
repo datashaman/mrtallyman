@@ -1,0 +1,24 @@
+body {
+    font-family: 'Lato', sans-serif;
+    color: yellow;
+    background-color: #669900;
+}
+.bg-dark {
+    background-color: #2f2f2f !important;
+}
+.content a {
+    color: inherit;
+    text-decoration: underline;
+}
+.content a:hover {
+    color: white;
+}
+.content {
+    padding-top: 20px;
+}
+.col-intro p {
+    font-size: 14pt;
+}
+#how-it-works {
+    font-size: 24pt;
+}

@@ -1,17 +1,18 @@
-import boto3
-import botocore
 import json
+import os
 import time
 
-from app.db import delete_team_table, get_user
-from app.tallybot import generate_signature
+from mrtallyman.db import (delete_team_table,
+                    get_table_name,
+                    get_team_user)
+from mrtallyman.slack import generate_signature
 from urllib.parse import parse_qsl, urlencode
 
 def post_as_slack(client, app, body, timestamp=None, secret=None):
     if timestamp is None:
         timestamp = str(time.time())
     if secret is None:
-        secret = app.config['SLACK_SIGNING_SECRET']
+        secret = os.environ['SLACK_SIGNING_SECRET']
     signature = generate_signature(timestamp,
                                    secret,
                                    json.dumps(body, sort_keys=True))
@@ -147,10 +148,10 @@ def test_event_message_reset_as_admin(requests_mock, client, app):
     assert users_info.called
     assert post_message.called
 
-def test_event_message_leaderboard(create_user, requests_mock, client, app):
-    create_user('TEAM', 'USER1', given=3, received=2, trolls=0)
-    create_user('TEAM', 'USER2', given=2, received=1, trolls=3)
-    create_user('TEAM', 'USER3', given=1, received=3, trolls=1)
+def test_event_message_leaderboard(create_team_user, requests_mock, client, app):
+    create_team_user('TEAM', 'USER1', given=3, received=2, trolls=0)
+    create_team_user('TEAM', 'USER2', given=2, received=1, trolls=3)
+    create_team_user('TEAM', 'USER3', given=1, received=3, trolls=1)
 
     def json_callback(request, context):
         form = dict(parse_qsl(request._request.body))
@@ -245,8 +246,8 @@ def test_event_message_empty_leaderboard(requests_mock, client, app):
         'text': 'Needs moar :banana:',
     })
 
-def test_event_message_tally_me(requests_mock, create_user, client, app):
-    create_user('TEAM', 'USER', given=5, received=3, trolls=1)
+def test_event_message_tally_me(requests_mock, create_team_user, client, app):
+    create_team_user('TEAM', 'USER', given=5, received=3, trolls=1)
 
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
     response = post_as_slack(
@@ -378,9 +379,9 @@ def test_event_app_mention_dayo(requests_mock, client, app):
     assert response.status_code == 200
     assert post_message.called
 
-def test_event_message_banana(requests_mock, create_user, client, app):
-    create_user('TEAM', 'USER')
-    create_user('TEAM', 'OTHER')
+def test_event_message_banana(requests_mock, create_team_user, client, app):
+    create_team_user('TEAM', 'USER')
+    create_team_user('TEAM', 'OTHER')
 
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
 
@@ -424,15 +425,15 @@ def test_event_message_banana(requests_mock, create_user, client, app):
     })
     assert users_info.called
 
-    user = get_user('TEAM', 'USER')
+    user = get_team_user('TEAM', 'USER')
     assert user['given'] == 1
 
-    other = get_user('TEAM', 'OTHER')
+    other = get_team_user('TEAM', 'OTHER')
     assert other['received'] == 1
 
-def test_event_reaction_added_banana(requests_mock, create_user, client, app):
-    create_user('TEAM', 'USER')
-    create_user('TEAM', 'ITEM_USER')
+def test_event_reaction_added_banana(requests_mock, create_team_user, client, app):
+    create_team_user('TEAM', 'USER')
+    create_team_user('TEAM', 'ITEM_USER')
 
     def match_args(request):
         return 'user=ITEM_USER' == request._request.body
@@ -465,15 +466,15 @@ def test_event_reaction_added_banana(requests_mock, create_user, client, app):
     assert response.status_code == 200
     assert users_info.called
 
-    user = get_user('TEAM', 'USER')
+    user = get_team_user('TEAM', 'USER')
     assert user['given'] == 1
 
-    item_user = get_user('TEAM', 'ITEM_USER')
+    item_user = get_team_user('TEAM', 'ITEM_USER')
     assert item_user['received'] == 1
 
-def test_event_reaction_removed_banana(requests_mock, create_user, client, app):
-    create_user('TEAM', 'USER', given=1)
-    create_user('TEAM', 'ITEM_USER', received=1)
+def test_event_reaction_removed_banana(requests_mock, create_team_user, client, app):
+    create_team_user('TEAM', 'USER', given=1)
+    create_team_user('TEAM', 'ITEM_USER', received=1)
 
     def match_args(request):
         return 'user=ITEM_USER' == request._request.body
@@ -506,14 +507,14 @@ def test_event_reaction_removed_banana(requests_mock, create_user, client, app):
     assert response.status_code == 200
     assert users_info.called
 
-    user = get_user('TEAM', 'USER')
+    user = get_team_user('TEAM', 'USER')
     assert user['given'] == 0
 
-    item_user = get_user('TEAM', 'ITEM_USER')
+    item_user = get_team_user('TEAM', 'ITEM_USER')
     assert item_user['received'] == 0
 
-def test_event_reaction_added_banana_to_bot(requests_mock, create_user, client, app):
-    create_user('TEAM', 'USER')
+def test_event_reaction_added_banana_to_bot(requests_mock, create_team_user, client, app):
+    create_team_user('TEAM', 'USER')
 
     def match_args(request):
         return 'user=BOT' == request._request.body
@@ -546,12 +547,12 @@ def test_event_reaction_added_banana_to_bot(requests_mock, create_user, client, 
     assert response.status_code == 200
     assert users_info.called
 
-    user = get_user('TEAM', 'USER')
+    user = get_team_user('TEAM', 'USER')
     assert user['given'] == 0
 
-def test_event_reaction_added_troll(requests_mock, create_user, client, app):
-    create_user('TEAM', 'USER')
-    create_user('TEAM', 'ITEM_USER')
+def test_event_reaction_added_troll(requests_mock, create_team_user, client, app):
+    create_team_user('TEAM', 'USER')
+    create_team_user('TEAM', 'ITEM_USER')
 
     def match_args(request):
         return 'user=ITEM_USER' == request._request.body
@@ -584,12 +585,12 @@ def test_event_reaction_added_troll(requests_mock, create_user, client, app):
     assert response.status_code == 200
     assert users_info.called
 
-    item_user = get_user('TEAM', 'ITEM_USER')
+    item_user = get_team_user('TEAM', 'ITEM_USER')
     assert item_user['trolls'] == 1
 
-def test_event_reaction_removed_troll(requests_mock, create_user, client, app):
-    create_user('TEAM', 'USER')
-    create_user('TEAM', 'ITEM_USER', trolls=1)
+def test_event_reaction_removed_troll(requests_mock, create_team_user, client, app):
+    create_team_user('TEAM', 'USER')
+    create_team_user('TEAM', 'ITEM_USER', trolls=1)
 
     def match_args(request):
         return 'user=ITEM_USER' == request._request.body
@@ -622,11 +623,11 @@ def test_event_reaction_removed_troll(requests_mock, create_user, client, app):
     assert response.status_code == 200
     assert users_info.called
 
-    item_user = get_user('TEAM', 'ITEM_USER')
+    item_user = get_team_user('TEAM', 'ITEM_USER')
     assert item_user['trolls'] == 0
 
-def test_event_reaction_added_troll_to_bot(requests_mock, create_user, client, app):
-    create_user('TEAM', 'USER')
+def test_event_reaction_added_troll_to_bot(requests_mock, create_team_user, client, app):
+    create_team_user('TEAM', 'USER')
 
     def match_args(request):
         return 'user=BOT' == request._request.body
@@ -669,7 +670,8 @@ def test_delete_missing_table(requests_mock, app):
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
     delete_team_table('UNKNOWN', 'CHANNEL')
     assert post_message.called
+    table_name = get_table_name('UNKNOWN')
     assert post_message.last_request.body == urlencode({
         'channel': 'CHANNEL',
-        'text': 'Table tallybot-UNKNOWN is not there',
+        'text': 'Table %s is not there' % table_name,
     })

@@ -11,12 +11,6 @@ pip-install:
 pip-install-testing:
 	pip install -r requirements-testing.txt
 
-zappa-deploy:
-	zappa deploy $(STAGE)
-
-zappa-update:
-	zappa update $(STAGE)
-
 dev-run:
 	flask run -p $(PORT)
 
@@ -36,5 +30,13 @@ test-coverage:
 	pytest -sv --cov-report term-missing --cov=app --fulltrace tests/
 
 clean:
+	rm -rf .coverage .pytest_cache/
 	find . -type f -name *.pyc -delete
 	find . -type d -name __pycache__  -delete
+
+mysql:
+	mysql -u$(MYSQL_USER) -p$(MYSQL_PASSWORD) -h$(MYSQL_HOST) $(MYSQL_DB)
+
+mysql-recreate:
+	mysqladmin -u$(MYSQL_USER) -p$(MYSQL_PASSWORD) -h$(MYSQL_HOST) drop $(MYSQL_DB)
+	mysqladmin -u$(MYSQL_USER) -p$(MYSQL_PASSWORD) -h$(MYSQL_HOST) create $(MYSQL_DB)
