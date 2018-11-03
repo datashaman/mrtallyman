@@ -244,6 +244,11 @@ def create_app(config=None):
     def how_it_works():
         return render_template('how-it-works.html')
 
+    @app.route('/pricing')
+    @register_menu(app, '.pricing', 'Pricing')
+    def pricing():
+        return render_template('pricing.html')
+
     @app.route('/privacy-policy')
     @register_menu(app, '.privacy-policy', 'Privacy Policy')
     def privacy_policy():
