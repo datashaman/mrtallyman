@@ -1,0 +1,17 @@
+--- etc/uwsgi.ini
++++ etc/uwsgi.ini
+@@ -1,9 +1,14 @@
+ [uwsgi]
+ chdir = /home/mrtallyman/mrtallyman
++chmod-socket = 660
++chown-socket = mrtallyman:mrtallyman
+ enable-threads = true
++home = /home/mrtallyman/.virtualenvs/mrtallyman
+ master = true
+ mount = /=server:app
+ offload-threads = 1
+ processes = 2
++socket = /home/mrtallyman/mrtallyman/uwsgi.sock
+ threads = 4
++uid = 1002
+ vassal_name = %n

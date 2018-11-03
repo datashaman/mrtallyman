@@ -1,5 +1,99 @@
 {% extends 'layout.html' %}
+{% import 'macros.html' as m %}
+{% set title = 'how it works' %}
 
 {% block content %}
 <h1>How it works</h1>
+
+<p>
+    Firstly, the bot must be invited to a channel to respond to mentions. If you find the bot not
+    double-check they are invited to the channel.
+</p>
+
+<p>
+    To reward a user, mention them in a message with a variable number of {{ m.banana(32, 32, 'banana') }}.
+</p>
+
+<div class="card-chat card">
+    <div class="card-body">
+        <span class="mention">@user1</span> here have a {{ m.banana(16, 16, 'banana') }}<br/>
+        <span class="mention">@user2</span> <span class="mention">@user3</span> you deserve 2! {{ m.banana(16, 16, 'banana') }} {{ m.banana(16, 16, 'banana') }}
+    </div>
+</div>
+
+<p>
+    Mentions such as the above cannot be edited to remove the reward. Once it's posted, it's scored.
+</p>
+
+<p>
+    Another way to reward a user is to add a {{ m.banana(16, 16, 'banana') }} reaction to their messages.
+</p>
+
+<p>
+    As a public service to all, you can also mark a user as a troll by adding a {{ m.troll(16, 16, 'troll') }} reaction to a message of theirs.
+</p>
+
+<p>
+    Removing a {{ m.banana(16, 16, 'banana') }} or {{ m.troll(16, 16, 'troll') }} reaction will reduce the score of the user appropriately.
+</p>
+
+<p>
+    A user cannot reward themselves or bot users, either by app mentions or reactions.
+</p>
+
+<p>
+    To see the leaderboard use one of the following:
+</p>
+
+<div class="card-chat card">
+    <div class="card-body">
+        <span class="mention">@mrtallyman</span> bananas<br/>
+        <span class="mention">@mrtallyman</span> leaderboard<br/>
+        <span class="mention">@mrtallyman</span> tally
+    </div>
+</div>
+
+<p>
+    The leaderboard shows the names of the top users who've given and received
+    {{ m.banana(16, 16, 'banana') }} since the last table reset, as well as the {{ m.troll(16, 16, 'troll') }} scores.
+</p>
+
+<p>
+    It displays names instead of user mentions to avoid notification fatigue when someone wants to see the leaderboard.
+</p>
+
+<p>
+    To see your own scores use one of the following:
+</p>
+
+<div class="card-chat card">
+    <div class="card-body">
+        <span class="mention">@mrtallyman</span> tallyme<br/>
+        <span class="mention">@mrtallyman</span> tally me
+    </div>
+</div>
+
+<p>
+    All of the above app mentions can also be used in a private channel with the bot (without the bot prefix):
+</p>
+
+<div class="card-chat card">
+    <div class="card-body">
+        bananas<br/>
+        leaderboard<br/>
+        tally<br/>
+        tallyme<br/>
+        tally me
+    </div>
+</div>
+
+<p>
+    If you are an admin in the team workspace, you can privately message the bot to reset the scores for your team:
+</p>
+
+<div class="card-chat card">
+    <div class="card-body">
+        reset!
+    </div>
+</div>
 {% endblock %}

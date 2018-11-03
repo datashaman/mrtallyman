@@ -1,12 +1,13 @@
-#!/usr/bin/env bash -x
+#!/usr/bin/env bash
 
 set -e
 
-ROOT_PASSWORD=$1
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 branch"
+fi
 
-BRANCH=feature/leave-lambda
+DEPLOY_BRANCH=$1
 FLASK_ENV=production
-FLASK_INSTANCE=production.py
 MRTALLYMAN="sudo -sHu mrtallyman"
 
 if ! dpkg -s mysql-server > /dev/null; then
@@ -22,8 +23,10 @@ fi
 
 cd mrtallyman
 
-$MRTALLYMAN git checkout $BRANCH
-$MRTALLYMAN git pull --ff-only
+sudo chown -R mrtallyman:mrtallyman .
+
+$MRTALLYMAN git fetch
+$MRTALLYMAN git checkout origin/$DEPLOY_BRANCH
 
 if [ ! -e .env ]; then
   echo "Enter the MySQL host: "
@@ -51,16 +54,15 @@ if [ ! -e .env ]; then
   read SLACK_SIGNING_SECRET
 
   $MRTALLYMAN cp .env.example .env
-  $MRTALLYMAN sed -i "s/FLASK_ENV=development/FLASK_ENV=production/
-          s/FLASK_INSTANCE=development.py/FLASK_INSTANCE=${FLASK_INSTANCE}/
+  $MRTALLYMAN sed -i "s/FLASK_ENV=development/FLASK_ENV=${FLASK_ENV}/
           s/MYSQL_DB=db/MYSQL_DB=${MYSQL_DB}/
           s/MYSQL_HOST=host/MYSQL_HOST=${MYSQL_HOST}/
           s/MYSQL_PASS=password/MYSQL_PASSWORD=${MYSQL_PASSWORD}/
           s/MYSQL_USER=user/MYSQL_USER=${MYSQL_USER}/
-          s/SLACK_API_TOKEN = '1234567890'/SLACK_API_TOKEN = '${SLACK_API_TOKEN}'/
-          s/SLACK_CLIENT_ID = '1234567890'/SLACK_CLIENT_ID = '${SLACK_CLIENT_ID}'/
-          s/SLACK_CLIENT_SECRET = '1234567890'/SLACK_CLIENT_SECRET = '${SLACK_CLIENT_SECRET}'/
-          s/SLACK_SIGNING_SECRET = '1234567890'/SLACK_SIGNING_SECRET = '${SLACK_CLIENT_ID}'/" .env
+          s/SLACK_API_TOKEN=1234567890/SLACK_API_TOKEN=${SLACK_API_TOKEN}/
+          s/SLACK_CLIENT_ID=1234567890/SLACK_CLIENT_ID=${SLACK_CLIENT_ID}/
+          s/SLACK_CLIENT_SECRET=1234567890/SLACK_CLIENT_SECRET=${SLACK_CLIENT_SECRET}/
+          s/SLACK_SIGNING_SECRET=1234567890/SLACK_SIGNING_SECRET=${SLACK_CLIENT_ID}/" .env
 fi
 
 source .env
@@ -78,14 +80,19 @@ if ! dpkg -s virtualenvwrapper > /dev/null; then
   sudo apt install virtualenvwrapper
 fi
 
-$MRTALLYMAN bash -c "source /etc/bash_completion.d/virtualenvwrapper && mkvirtualenv --clear -p /usr/bin/python3 -r requirements.txt mrtallyman"
-$MRTALLYMAN bash -c "source /etc/bash_completion.d/virtualenvwrapper && workon mrtallyman && pip install uwsgi"
+if [ ! -e ~mrtallyman/.virtualenvs/mrtallyman ]; then
+  $MRTALLYMAN bash -c "source /etc/bash_completion.d/virtualenvwrapper && mkvirtualenv -p /usr/bin/python3 mrtallyman"
+fi
+
+$MRTALLYMAN bash -c "source /etc/bash_completion.d/virtualenvwrapper && workon mrtallyman && pip install -r requirements.txt uwsgi"
 
 if ! dpkg -s nginx > /dev/null; then
   sudo apt install nginx
 fi
 
-sudo rm -f /etc/nginx/sites-enabled/default
+if [ -e /etc/nginx/sites-enabled/default ]; then
+  sudo rm -f /etc/nginx/sites-enabled/default
+fi
 
 if [ ! -e /etc/nginx/sites-enabled/mrtallyman.conf ]; then
   sudo ln -sf ~mrtallyman/mrtallyman/etc/nginx.conf /etc/nginx/sites-available/mrtallyman.conf
@@ -93,10 +100,8 @@ if [ ! -e /etc/nginx/sites-enabled/mrtallyman.conf ]; then
   sudo /etc/init.d/nginx restart
 fi
 
-sudo mkdir -p /var/log/mrtallyman
-sudo chown -R www-data:www-data /var/log/mrtallyman ~mrtallyman/mrtallyman
-
-if [ ! -e /etc/systemd/system/mrtallyman.service ]; then
-  sudo ln -sf ~mrtallyman/mrtallyman/etc/uwsgi.service /etc/systemd/system/mrtallyman.uwsgi
-  sudo systemctl enable mrtallyman.service
+if [ ! -e /etc/uwsgi/vassals/mrtallyman.ini ]; then
+  sudo ln -sf ~mrtallyman/mrtallyman/etc/uwsgi.ini /etc/uwsgi/vassals/mrtallyman.ini
 fi
+
+sudo systemctl restart emperor.uwsgi
