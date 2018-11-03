@@ -11,6 +11,7 @@ from flask_menu import Menu, register_menu
 from .db import (init_db,
                     create_team_table,
                     delete_team_table,
+                    get_team_config,
                     get_team_user,
                     get_team_users,
                     update_team_config,
@@ -80,9 +81,9 @@ def reset_team_table(team_id, event):
         user=event['user']
     )
 
-    admins = os.environ.get('ADMINS', '').split(',')
+    team = get_team_config(team_id)
 
-    if response['user']['is_admin'] or response['user'].get('name') in admins:
+    if response['user']['is_admin'] or response['user'].get('name') == team['user_id']:
         delete_team_table(team_id, channel)
         create_team_table(team_id, channel)
     else:
