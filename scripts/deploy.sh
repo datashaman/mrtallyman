@@ -29,6 +29,9 @@ $MRTALLYMAN git fetch
 $MRTALLYMAN git checkout origin/$DEPLOY_BRANCH
 
 if [ ! -e .env ]; then
+  echo "Enter the Google Analytics ID: "
+  read GOOGLE_ANALYTICS_ID
+
   echo "Enter the MySQL host: "
   read MYSQL_HOST
 
@@ -55,6 +58,7 @@ if [ ! -e .env ]; then
 
   $MRTALLYMAN cp .env.example .env
   $MRTALLYMAN sed -i "s/FLASK_ENV=development/FLASK_ENV=${FLASK_ENV}/
+          s/GOOGLE_ANALYTICS_ID=db/GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}/
           s/MYSQL_DB=db/MYSQL_DB=${MYSQL_DB}/
           s/MYSQL_HOST=host/MYSQL_HOST=${MYSQL_HOST}/
           s/MYSQL_PASS=password/MYSQL_PASSWORD=${MYSQL_PASSWORD}/
