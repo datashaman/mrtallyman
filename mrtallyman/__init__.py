@@ -205,6 +205,9 @@ def create_app(config=None):
 
     @app.route('/auth', methods=['GET'])
     def auth():
+        if 'error' in request.args:
+            return redirect(url_for('sorry'))
+
         if 'code' not in request.args:
             abort(403)
 
@@ -233,6 +236,10 @@ def create_app(config=None):
     @app.route('/thanks')
     def thanks():
         return render_template('thanks.html')
+
+    @app.route('/sorry')
+    def sorry():
+        return render_template('sorry.html')
 
     @app.route('/')
     @register_menu(app, '.', 'Home')
