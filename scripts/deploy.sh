@@ -108,4 +108,4 @@ if [ ! -e /etc/uwsgi/vassals/mrtallyman.ini ]; then
   sudo ln -sf ~mrtallyman/mrtallyman/etc/uwsgi.ini /etc/uwsgi/vassals/mrtallyman.ini
 fi
 
-sudo systemctl restart emperor.uwsgi
+$MRTALLYMAN touch etc/uwsgi.ini
