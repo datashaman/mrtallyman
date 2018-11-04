@@ -23,12 +23,12 @@
         <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon-16x16.png') }}" sizes="16x16" />
         {% block styles %}{% endblock %}
 
-        <script async src="https://www.googletagmanager.com/gtag/js?id={{ os.environ['GOOGLE_ANALYTICS_ID'] }}"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ google_analytics_id }}"></script>
         <script>
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', os.environ['GOOGLE_ANALYTICS_ID']);
+            gtag('config', '{{ google_analytics_id }}');
         </script>
 
         {% block scripts_head %}{% endblock %}

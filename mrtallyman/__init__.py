@@ -324,4 +324,8 @@ def create_app(config=None):
         init_db(app)
         click.echo('Initialized the database')
 
+    @app.context_processor
+    def inject_google_analytics_id():
+        return dict(google_analytics_id=os.environ['GOOGLE_ANALYTICS_ID'])
+
     return app
