@@ -195,10 +195,13 @@ def create_app(config=None):
 
     @app.route('/slack', methods=['POST'])
     def slack():
+        if 'X-Slack-Retry-Num' in request.headers:
+            return 'OK'
+
         response = handle_request(app, request)
 
         if response is True:
-            return ''
+            return 'OK'
         elif response is False:
             abort(400)
 
@@ -222,7 +225,6 @@ def create_app(config=None):
         data = response.json()
 
         if data['ok']:
-            print(data)
             config = {
                 'access_token': data['access_token'],
                 'bot_access_token': data['bot']['bot_access_token'],

@@ -187,20 +187,6 @@ def table_exists(table_name):
             return False
         raise exc
 
-def delete_config_table():
-    table_name = get_table_name('config')
-
-    if not table_exists(table_name):
-        app_log('Table %s is not there' % table_name)
-        return
-
-    sql = 'DROP TABLE `%s`' % table_name
-
-    with db_cursor() as cursor:
-        cursor.execute(sql)
-
-    app_log('Table %s deleted' % table_name)
-
 def delete_team_table(team_id, channel):
     table_name = get_table_name(team_id)
 
