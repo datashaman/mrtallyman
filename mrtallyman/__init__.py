@@ -5,7 +5,6 @@ import re
 import requests
 
 from flask import Flask, abort, redirect, render_template, request, url_for
-from flask.cli import with_appcontext
 from flask_menu import Menu, register_menu
 
 from .db import (init_db,
@@ -113,7 +112,7 @@ def generate_me(team_id, event):
     if text:
         post_message(team_id, text, event['channel'])
 
-def update_users(team_id, channel, giver, recipients, count, multiplier=1, report=True):
+def update_users(team_id, channel, giver, recipients, score=1, report=True):
     recipients = set(recipients)
 
     if giver in recipients:
@@ -131,8 +130,8 @@ def update_users(team_id, channel, giver, recipients, count, multiplier=1, repor
                 display_name = info['user']['profile']['real_name_normalized']
                 output.append("%s is a bot. Bots don't need %s."  % (display_name, EMOJI))
         else:
-            given += multiplier * count
-            user = update_team_user(team_id, recipient, 'received', multiplier * count)
+            given += score
+            user = update_team_user(team_id, recipient, 'received', score)
 
             if report:
                 display_name = info['user']['profile']['display_name']
@@ -147,10 +146,10 @@ def update_users(team_id, channel, giver, recipients, count, multiplier=1, repor
     if report:
         return output
 
-def update_trolls(team_id, recipient, multiplier=1):
+def update_trolls(team_id, recipient, score=1):
     info = get_user_info(team_id, recipient)
     if not info['user']['is_bot']:
-        update_team_user(team_id, recipient, 'trolls', multiplier * 1)
+        update_team_user(team_id, recipient, 'trolls', score)
 
 @task
 def update_scores_message(team_id, event):
@@ -159,25 +158,25 @@ def update_scores_message(team_id, event):
     else:
         message = event
 
-    emojis = re.findall(EMOJI, message['text'])
-    if emojis:
+    found = re.search(EMOJI, message['text'])
+    if found:
         recipients = re.findall(r'<@([A-Z0-9]+)>', message['text'])
 
         if recipients:
             channel = event['channel']
-            report = update_users(team_id, channel, event['user'], recipients, len(emojis))
+            report = update_users(team_id, channel, event['user'], recipients)
             text = ', '.join(report)
             post_message(team_id, text, channel)
 
 @task
 def update_scores_reaction(team_id, event):
-    multiplier = 1
+    score = 1
     if event['type'] == 'reaction_removed':
-        multiplier = -1
+        score = -1
     if event['reaction'] == REACTION and event.get('item_user') and event['user'] != event['item_user']:
-        update_users(team_id, None, event['user'], [event['item_user']], 1, multiplier, False)
+        update_users(team_id, None, event['user'], [event['item_user']], score, False)
     elif event['reaction'] in TROLLS and event.get('item_user') and event['user'] != event['item_user']:
-        update_trolls(team_id, event['item_user'], multiplier)
+        update_trolls(team_id, event['item_user'], score)
 
 def create_app(config=None):
     from dotenv import load_dotenv
