@@ -166,7 +166,7 @@ def update_scores_message(team_id, event):
         if recipients:
             channel = event['channel']
             report = update_users(team_id, channel, event['user'], recipients)
-            text = ', '.join(report)
+            text = ' '.join(report)
             post_message(team_id, text, channel)
 
 @task
