@@ -13,6 +13,7 @@ from .db import (init_db,
                     get_team_config,
                     get_team_user,
                     get_team_users,
+                    get_teams_info,
                     update_team_config,
                     update_team_user)
 from .constants import (AFFIRMATIONS,
@@ -255,6 +256,11 @@ def create_app(config=None):
     @register_menu(app, '.how-it-works', 'How It Works')
     def how_it_works():
         return render_template('how-it-works.html')
+
+    @app.route('/info')
+    def info():
+        info = get_teams_info()
+        return render_template('info.html', info=info)
 
     @app.route('/pricing')
     @register_menu(app, '.pricing', 'Pricing')

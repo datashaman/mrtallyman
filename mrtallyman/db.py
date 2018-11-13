@@ -110,6 +110,23 @@ def get_team_users(team_id):
         cursor.execute(sql)
         return cursor.fetchall()
 
+def get_teams_info():
+    info = []
+
+    with db_cursor() as cursor:
+        sql = 'SELECT * FROM `team_config` ORDER BY `team_name`'
+        cursor.execute(sql)
+        teams = cursor.fetchall()
+
+        for team in teams:
+            with db_cursor() as users_cursor:
+                sql = 'SELECT COUNT(*) AS `user_count` FROM `team_%s`' % team['id']
+                users_cursor.execute(sql)
+                result = users_cursor.fetchone()
+                info.append({'team': team, 'user_count': result['user_count']})
+
+    return info
+
 def update_team_user(team_id, user_id, attribute, value):
     user = get_team_user(team_id, user_id)
 

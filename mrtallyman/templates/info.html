@@ -1,0 +1,14 @@
+{% extends 'layout.html' %}
+{% import 'macros.html' as m %}
+
+{% set page_title = 'info' %}
+
+{% block content %}
+<h1>Info</h1>
+
+<ul>
+    {% for i in info %}
+    <li>{{i.team.team_name}}: {{i.user_count}}</li>
+    {% endfor %}
+</ul>
+{% endblock %}
