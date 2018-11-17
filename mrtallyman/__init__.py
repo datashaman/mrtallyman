@@ -193,8 +193,8 @@ def create_app(config=None):
 
     Menu(app)
 
-    @app.route('/slack', methods=['POST'])
-    def slack():
+    @app.route('/slack/event', methods=['POST'])
+    def event():
         if 'X-Slack-Retry-Num' in request.headers:
             return 'OK'
 
@@ -207,7 +207,15 @@ def create_app(config=None):
 
         return response
 
-    @app.route('/auth', methods=['GET'])
+    @app.route('/slack/action', methods=['POST'])
+    def action():
+        pass
+
+    @app.route('/slack/command', methods=['POST'])
+    def command():
+        pass
+
+    @app.route('/slack/auth', methods=['GET'])
     def auth():
         if 'error' in request.args:
             return redirect(url_for('sorry'))
