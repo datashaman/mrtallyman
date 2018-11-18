@@ -328,10 +328,7 @@ def create_app(config=None):
                 'access_token': data['access_token'],
                 'bot_access_token': data['bot']['bot_access_token'],
                 'bot_user_id': data['bot']['bot_user_id'],
-                'reset_interval': 'never',
-                'reward_emojis': 'banana',
                 'team_name': data['team_name'],
-                'troll_emojis': 'troll,trollface',
                 'user_id': data['user_id'],
             }
             update_team_config(data['team_id'], **config)

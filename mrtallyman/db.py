@@ -177,13 +177,16 @@ def update_team_config(team_id, **attrs):
         args = attrs
         args['id'] = team_id
     else:
-        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(user_id)s)'
+        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, reward_emojis, troll_emojis, reset_interval, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(user_id)s)'
         team = {
-            'id': team_id,
-            'team_name': '',
             'access_token': '',
             'bot_access_token': '',
             'bot_user_id': '',
+            'id': team_id,
+            'reset_interval': 'never',
+            'reward_emojis': 'banana',
+            'team_name': '',
+            'troll_emojis': 'troll,trollface',
             'user_id': '',
         }
         args = team
