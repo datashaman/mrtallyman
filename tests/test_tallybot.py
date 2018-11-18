@@ -8,7 +8,7 @@ from mrtallyman.db import (delete_team_table,
 from mrtallyman.slack import generate_signature
 from urllib.parse import parse_qsl, urlencode
 
-def post_as_slack(client, app, body, timestamp=None, secret=None):
+def post_as_slack(client, app, body, endpoint='event', timestamp=None, secret=None):
     if timestamp is None:
         timestamp = str(time.time())
     if secret is None:
@@ -17,7 +17,7 @@ def post_as_slack(client, app, body, timestamp=None, secret=None):
                                    secret,
                                    json.dumps(body, sort_keys=True))
     return client.post(
-        '/slack',
+        '/slack/%s' % endpoint,
         json=body,
         headers={
             'X-Slack-Request-Timestamp': timestamp,

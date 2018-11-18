@@ -56,6 +56,9 @@ def create_config_table():
         `bot_access_token` varchar(255),
         `bot_user_id` varchar(255),
         `user_id` varchar(255),
+        `reward_emojis` varchar(255),
+        `troll_emojis` varchar(255),
+        `reset_interval` varchar(255),
         primary key (`id`),
         unique key (`team_name`)
     );''' % get_table_name('config')
@@ -174,13 +177,16 @@ def update_team_config(team_id, **attrs):
         args = attrs
         args['id'] = team_id
     else:
-        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(user_id)s)'
+        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, reward_emojis, troll_emojis, reset_interval, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(user_id)s)'
         team = {
-            'id': team_id,
-            'team_name': '',
             'access_token': '',
             'bot_access_token': '',
             'bot_user_id': '',
+            'id': team_id,
+            'reset_interval': 'never',
+            'reward_emojis': 'banana',
+            'team_name': '',
+            'troll_emojis': 'troll,trollface',
             'user_id': '',
         }
         args = team
@@ -228,3 +234,13 @@ def init_db(app):
         abort(400)
     create_team_table(response['team_id'])
     update_team_config(response['team_id'], team_name=response['team'], bot_access_token=token, bot_user_id=response['user_id'])
+
+def reset_team_scores(reset_interval):
+    with db_cursor() as cursor:
+        sql = 'SELECT `id` FROM `team_config` WHERE `reset_interval` = %s'
+        cursor.execute(sql, (reset_interval,))
+        teams = cursor.fetchall()
+
+        for team in teams:
+            delete_team_table(team['id'], None)
+            create_team_table(team['id'], None)

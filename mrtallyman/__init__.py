@@ -1,4 +1,5 @@
 import click
+import json
 import os
 import random
 import re
@@ -14,25 +15,31 @@ from .db import (init_db,
                     get_team_user,
                     get_team_users,
                     get_teams_info,
+                    reset_team_scores,
                     update_team_config,
                     update_team_user)
 from .constants import (AFFIRMATIONS,
                            BANANA_URLS,
-                           DAYO_URLS,
-                           EMOJI,
-                           REACTION,
-                           TROLLS)
+                           DAYO_URLS)
 from .db import get_bot_id
 from .decorators import memoize, task
 from .slack import (get_client,
                     handle_request,
                     on,
-                    post_message)
+                    post_message,
+                    valid_request)
 
-def generate_leaderboard(team_id, users, column='received'):
-    emoji = EMOJI
+def get_reward_emojis(team):
+    return team['reward_emojis'].split(',')
+
+def get_troll_emojis(team):
+    return team['troll_emojis'].split(',')
+
+def generate_leaderboard(team, users, column='received'):
     if column == 'trolls':
-        emoji = ':%s:' % TROLLS[0]
+        emoji = ':%s:' % get_troll_emojis(team)[0]
+    else:
+        emoji = ':%s:' % get_reward_emojis(team)[0]
 
     leaderboard = []
     filtered_users = [user for user in users if user.get(column, 0) > 0]
@@ -40,7 +47,7 @@ def generate_leaderboard(team_id, users, column='received'):
         return None
     sorted_users = sorted(filtered_users, key=lambda u: u.get(column, 0), reverse=True)[:10]
     for index, user in enumerate(sorted_users):
-        info = get_user_info(team_id, user['user_id'])
+        info = get_user_info(team['id'], user['user_id'])
         display_name = info['user']['profile']['display_name']
         leaderboard.append('%d. %s - %d %s' % (index+1, display_name, user.get(column, 0), emoji))
     return '\n'.join(leaderboard)
@@ -53,22 +60,24 @@ def get_user_info(team_id, user_id):
 def generate_leaderboards(team_id, event):
     leaderboards = []
 
+    team = get_team_config(team_id)
     users = get_team_users(team_id)
 
     if users:
-        received = generate_leaderboard(team_id, users, 'received')
+        received = generate_leaderboard(team, users, 'received')
         if received:
             leaderboards.append('*Received*\n\n%s' % received)
 
-        given = generate_leaderboard(team_id, users, 'given')
+        given = generate_leaderboard(team, users, 'given')
         if given:
             leaderboards.append('*Given*\n\n%s' % given)
 
-        trolls = generate_leaderboard(team_id, users, 'trolls')
+        trolls = generate_leaderboard(team, users, 'trolls')
         if trolls:
             leaderboards.append('*Trolls*\n\n%s' % trolls)
     else:
-        leaderboards.append('Needs moar %s' % EMOJI)
+        emoji = get_reward_emojis(team)[0]
+        leaderboards.append('Needs moar :%s:' % emoji)
 
     post_message(team_id, '\n\n'.join(leaderboards), event['channel'])
 
@@ -91,9 +100,12 @@ def reset_team_table(team_id, event):
 
 @task
 def generate_me(team_id, event):
+    team = get_team_config(team_id)
     user = get_team_user(team_id, event['user'])
 
     text = 'nothing to see here'
+    reward_emoji = get_reward_emojis(team)[0]
+    troll_emoji = get_troll_emojis(team)[0]
 
     if user:
         text = []
@@ -101,9 +113,9 @@ def generate_me(team_id, event):
         for column in ['received', 'given', 'trolls']:
             if user.get(column, 0) > 0:
                 if column == 'trolls':
-                    text.append('received %d :%s:' % (user['trolls'], TROLLS[0]))
+                    text.append('received %d :%s:' % (user['trolls'], troll_emoji))
                 else:
-                    text.append('%s %d %s' % (column, user[column], EMOJI))
+                    text.append('%s %d :%s:' % (column, user[column], reward_emoji))
 
         if text:
             text = 'You have ' + ', '.join(text)
@@ -122,6 +134,9 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
     if report:
         output = []
 
+    team = get_team_config(team_id)
+    emoji = get_reward_emojis(team)[0]
+
     given = 0
 
     for recipient in recipients:
@@ -129,7 +144,7 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
         if info['user']['is_bot']:
             if report:
                 display_name = info['user']['profile']['real_name_normalized']
-                output.append("%s is a bot. Bots don't need %s."  % (display_name, EMOJI))
+                output.append("%s is a bot. Bots don't need :%s:."  % (display_name, emoji))
         else:
             given += score
             user = update_team_user(team_id, recipient, 'received', score)
@@ -140,7 +155,7 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
                     affirmation = 'Done.'
                 else:
                     affirmation = random.choice(AFFIRMATIONS)
-                output.append('%s %s has %d %s!'% (affirmation, display_name, user['received'], EMOJI))
+                output.append('%s %s has %d :%s:!'% (affirmation, display_name, user['received'], emoji))
 
     update_team_user(team_id, giver, 'given', given)
 
@@ -159,25 +174,85 @@ def update_scores_message(team_id, event):
     else:
         message = event
 
-    found = re.search(EMOJI, message['text'])
-    if found:
-        recipients = re.findall(r'<@([A-Z0-9]+)>', message['text'])
+    team = get_team_config(team_id)
 
-        if recipients:
-            channel = event['channel']
-            report = update_users(team_id, channel, event['user'], recipients)
-            text = ' '.join(report)
-            post_message(team_id, text, channel)
+    for emoji in get_reward_emojis(team):
+        found = re.search(':%s:' % emoji, message['text'])
+        if found:
+            recipients = re.findall(r'<@([A-Z0-9]+)>', message['text'])
+
+            if recipients:
+                channel = event['channel']
+                report = update_users(team_id, channel, event['user'], recipients)
+                text = ' '.join(report)
+                post_message(team_id, text, channel)
 
 @task
 def update_scores_reaction(team_id, event):
+    team = get_team_config(team_id)
     score = 1
     if event['type'] == 'reaction_removed':
         score = -1
-    if event['reaction'] == REACTION and event.get('item_user') and event['user'] != event['item_user']:
+    if event['reaction'] in get_reward_emojis(team) and event.get('item_user') and event['user'] != event['item_user']:
         update_users(team_id, None, event['user'], [event['item_user']], score, False)
-    elif event['reaction'] in TROLLS and event.get('item_user') and event['user'] != event['item_user']:
+    elif event['reaction'] in get_troll_emojis(team) and event.get('item_user') and event['user'] != event['item_user']:
         update_trolls(team_id, event['item_user'], score)
+
+def handle_config(request):
+    team_id = request.form['team_id']
+    team = get_team_config(team_id)
+    payload = {
+        'trigger_id': request.form['trigger_id'],
+        'dialog': {
+            'callback_id': 'config',
+            'title': 'Configure mrtallyman',
+            'elements': [
+                {
+                    'type': 'text',
+                    'label': 'Reward emojis',
+                    'name': 'reward_emojis',
+                    'hint': 'Comma-separated list of emojis considered rewards',
+                    'value': team['reward_emojis'],
+                },
+                {
+                    'type': 'text',
+                    'label': 'Troll emojis',
+                    'name': 'troll_emojis',
+                    'hint': 'Comma-separated list of emojis considered trolls',
+                    'value': team['troll_emojis'],
+                },
+                {
+                    'type': 'select',
+                    'label': 'Reset interval',
+                    'name': 'reset_interval',
+                    'value': team['reset_interval'],
+                    'options': [
+                        {
+                            'label': 'Never Reset',
+                            'value': 'never',
+                        },
+                        {
+                            'label': 'Reset Daily',
+                            'value': 'daily',
+                        },
+                        {
+                            'label': 'Reset Weekly',
+                            'value': 'weekly',
+                        },
+                        {
+                            'label': 'Reset Monthly',
+                            'value': 'monthly',
+                        },
+                    ],
+                },
+            ]
+        },
+    }
+
+    response = get_client(request.form['team_id']).api_call('dialog.open', **payload)
+
+    if not response['ok']:
+        print(response)
 
 def create_app(config=None):
     from dotenv import load_dotenv
@@ -193,8 +268,8 @@ def create_app(config=None):
 
     Menu(app)
 
-    @app.route('/slack', methods=['POST'])
-    def slack():
+    @app.route('/slack/event', methods=['POST'])
+    def event():
         if 'X-Slack-Retry-Num' in request.headers:
             return 'OK'
 
@@ -207,7 +282,31 @@ def create_app(config=None):
 
         return response
 
-    @app.route('/auth', methods=['GET'])
+    @app.route('/slack/action', methods=['POST'])
+    def action():
+        if valid_request(app, request):
+            payload = json.loads(request.form['payload'])
+            if payload['type'] == 'dialog_submission':
+                if payload['callback_id'] == 'config':
+                    update_team_config(payload['team']['id'], **payload['submission'])
+                return ''
+        abort(403)
+
+    @app.route('/slack/command', methods=['POST'])
+    def command():
+        if valid_request(app, request):
+            text = request.form['text']
+
+            if text == 'ping':
+                return 'Pong'
+
+            if text in ['config', 'configure']:
+                handle_config(request)
+
+            return ''
+        abort(403)
+
+    @app.route('/slack/auth', methods=['GET'])
     def auth():
         if 'error' in request.args:
             return redirect(url_for('sorry'))
@@ -330,6 +429,11 @@ def create_app(config=None):
     def init_db_command():
         init_db(app)
         click.echo('Initialized the database')
+
+    @app.cli.command('reset-scores')
+    @click.argument('reset_interval')
+    def reset_scores_command(reset_interval):
+        reset_team_scores(reset_interval)
 
     @app.context_processor
     def inject_google_analytics_id():
