@@ -56,6 +56,9 @@ def create_config_table():
         `bot_access_token` varchar(255),
         `bot_user_id` varchar(255),
         `user_id` varchar(255),
+        `reward_emojis` varchar(255),
+        `troll_emojis` varchar(255),
+        `reset_interval` varchar(255),
         primary key (`id`),
         unique key (`team_name`)
     );''' % get_table_name('config')
@@ -228,3 +231,13 @@ def init_db(app):
         abort(400)
     create_team_table(response['team_id'])
     update_team_config(response['team_id'], team_name=response['team'], bot_access_token=token, bot_user_id=response['user_id'])
+
+def reset_team_scores(reset_interval):
+    with db_cursor() as cursor:
+        sql = 'SELECT `id` FROM `team_config` WHERE `reset_interval` = %s'
+        cursor.execute(sql, (reset_interval,))
+        teams = cursor.fetchall()
+
+        for team in teams:
+            delete_team_table(team['id'], None)
+            create_team_table(team['id'], None)

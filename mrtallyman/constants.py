@@ -28,13 +28,3 @@ DAYO_URLS = [
     'https://www.youtube.com/watch?v=PMigXnXMhQ4',
     'https://www.youtube.com/watch?v=AQXVHITd1N4',
 ]
-REACTION = 'banana'
-EMOJI = ':%s:' % REACTION
-SCOPES = [
-    'channels:history',
-    'channels:read',
-]
-TROLLS = [
-    'troll',
-    'trollface',
-]
