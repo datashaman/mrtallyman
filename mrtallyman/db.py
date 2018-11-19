@@ -81,8 +81,10 @@ def create_team_table(team_id, channel=None):
         `team_id` varchar(255) not null,
         `user_id` varchar(255) not null,
         `given` int default 0 not null,
+        `given_today` int default 0 not null,
         `received` int default 0 not null,
         `trolls` int default 0 not null,
+        `trolls_today` int default 0 not null,
         primary key (`id`),
         unique key (`team_id`, `user_id`),
         foreign key (`team_id`) references `team_config`(`id`)
