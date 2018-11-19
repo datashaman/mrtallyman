@@ -8,7 +8,7 @@
 
 <ul>
     {% for i in info %}
-    <li>{{i.team.team_name}}: {{i.user_count}}</li>
+    <li>{{i.team.id}} - {{i.team.team_name}}: {{i.user_count}}</li>
     {% endfor %}
 </ul>
 {% endblock %}

@@ -15,6 +15,7 @@ from .db import (init_db,
                     get_team_user,
                     get_team_users,
                     get_teams_info,
+                    reset_team_quotas,
                     reset_team_scores,
                     update_team_config,
                     update_team_user)
@@ -211,14 +212,15 @@ def handle_config(request):
                     'type': 'text',
                     'label': 'Reward emojis',
                     'name': 'reward_emojis',
-                    'hint': 'Comma-separated list of emojis considered rewards',
+                    'hint': 'Comma-separated list of emojis considered rewards.',
                     'value': team['reward_emojis'],
                 },
                 {
                     'type': 'text',
                     'label': 'Troll emojis',
                     'name': 'troll_emojis',
-                    'hint': 'Comma-separated list of emojis considered trolls',
+                    'hint': 'Comma-separated list of emojis considered trolls. Leave blank to disable.',
+                    'optional': True,
                     'value': team['troll_emojis'],
                 },
                 {
@@ -242,6 +244,31 @@ def handle_config(request):
                         {
                             'label': 'Reset Monthly',
                             'value': 'monthly',
+                        },
+                    ],
+                },
+                {
+                    'type': 'select',
+                    'label': 'Daily quota',
+                    'hint': 'Maximum number of rewards or trolls that can be given by a user per day.',
+                    'name': 'daily_quota',
+                    'value': team['daily_quota'],
+                    'options': [
+                        {
+                            'label': 'Unlimited',
+                            'value': 0,
+                        },
+                        {
+                            'label': 'Three per day',
+                            'value': 3,
+                        },
+                        {
+                            'label': 'Five per day',
+                            'value': 5,
+                        },
+                        {
+                            'label': 'Ten per day',
+                            'value': 10,
                         },
                     ],
                 },
@@ -434,6 +461,10 @@ def create_app(config=None):
     @click.argument('reset_interval')
     def reset_scores_command(reset_interval):
         reset_team_scores(reset_interval)
+
+    @app.cli.command('reset-quotas')
+    def reset_quotas_command():
+        reset_team_quotas()
 
     @app.context_processor
     def inject_google_analytics_id():

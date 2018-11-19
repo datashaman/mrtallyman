@@ -59,6 +59,7 @@ def create_config_table():
         `reward_emojis` varchar(255),
         `troll_emojis` varchar(255),
         `reset_interval` varchar(255),
+        `daily_quota` int,
         primary key (`id`),
         unique key (`team_name`)
     );''' % get_table_name('config')
@@ -151,12 +152,14 @@ def create_team_user(team_id, user_id, **attrs):
         'team_id': team_id,
         'user_id': user_id,
         'given': 0,
+        'given_today': 0,
         'received': 0,
-        'trolls': 0
+        'trolls': 0,
+        'trolls_today': 0,
     }
     user.update(attrs)
 
-    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `given`, `received`, `trolls`) values (%(team_id)s, %(user_id)s, %(given)s, %(received)s, %(trolls)s)'
+    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `given`, `given_today`, `received`, `trolls`, `trolls_today`) values (%(team_id)s, %(user_id)s, %(given)s, %(given_today)s, %(received)s, %(trolls)s, %(trolls_today)s)'
 
     with db_cursor() as cursor:
         cursor.execute(sql, user)
@@ -177,11 +180,12 @@ def update_team_config(team_id, **attrs):
         args = attrs
         args['id'] = team_id
     else:
-        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, reward_emojis, troll_emojis, reset_interval, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(user_id)s)'
+        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, reward_emojis, troll_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
         team = {
             'access_token': '',
             'bot_access_token': '',
             'bot_user_id': '',
+            'daily_quota': None,
             'id': team_id,
             'reset_interval': 'never',
             'reward_emojis': 'banana',
@@ -244,3 +248,13 @@ def reset_team_scores(reset_interval):
         for team in teams:
             delete_team_table(team['id'], None)
             create_team_table(team['id'], None)
+
+def reset_team_quotas():
+    with db_cursor() as cursor:
+        sql = 'SELECT `id` FROM `team_config`'
+        cursor.execute(sql)
+        teams = cursor.fetchall()
+
+        for team in teams:
+            sql = 'UPDATE `team_' + team['id'] + '` SET given_today = %s, trolls_today = %s'
+            cursor.execute(sql, (0, 0))
