@@ -707,5 +707,6 @@ def test_delete_missing_table(requests_mock, app):
     table_name = get_table_name('UNKNOWN')
     assert post_message.last_request.body == urlencode({
         'channel': 'CHANNEL',
+        'response_type': 'ephemeral',
         'text': 'Table %s is not there' % table_name,
     })

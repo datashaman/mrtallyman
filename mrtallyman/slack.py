@@ -34,9 +34,14 @@ def get_bot_by_token(token):
     client = SlackClient(token)
     return client.api_call('auth.test')
 
-def post_message(team_id, text, channel):
+def post_message(team_id, text, channel, ephemeral=False):
+    if ephemeral:
+        endpoint = 'chat.postEphemeral'
+    else:
+        endpoint = 'chat.postMessage'
+
     get_client(team_id).api_call(
-        'chat.postMessage',
+        endpoint,
         channel=channel,
         text=text
     )

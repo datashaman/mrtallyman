@@ -2,8 +2,7 @@ import pymysql
 import os
 
 from .decorators import memoize
-from .utilities import team_log
-from .slack import get_bot_by_token
+from .slack import get_bot_by_token, post_message
 from contextlib import contextmanager
 from pymysql.err import ProgrammingError
 from slackclient import SlackClient
@@ -73,7 +72,7 @@ def create_team_table(team_id, channel=None):
     if table_exists(table_name):
         return
 
-    team_log(team_id, 'Creating table %s' % table_name, channel)
+    post_message(team_id, 'Creating table %s' % table_name, channel, ephemeral=true)
 
     sql = '''
     CREATE TABLE `%s` (
@@ -93,7 +92,7 @@ def create_team_table(team_id, channel=None):
     with db_cursor() as cursor:
         cursor.execute(sql)
 
-    team_log(team_id, 'Table %s created' % table_name, channel)
+    post_message(team_id, 'Table %s created' % table_name, channel, ephemeral=True)
 
 def get_team_config(team_id):
     sql = 'SELECT * FROM `team_config` WHERE `id` = %s'
@@ -220,7 +219,7 @@ def delete_team_table(team_id, channel):
     table_name = get_table_name(team_id)
 
     if not table_exists(table_name):
-        team_log(team_id, 'Table %s is not there' % table_name, channel)
+        post_message(team_id, 'Table %s is not there' % table_name, channel, ephemeral=True)
         return
 
     sql = 'DROP TABLE `%s`' % table_name
@@ -228,7 +227,7 @@ def delete_team_table(team_id, channel):
     with db_cursor() as cursor:
         cursor.execute(sql)
 
-    team_log(team_id, 'Table %s deleted' % table_name, channel)
+    post_message(team_id, 'Table %s deleted' % table_name, channel, ephemeral=True)
 
 def init_db(app):
     create_config_table()
