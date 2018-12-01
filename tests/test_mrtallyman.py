@@ -142,7 +142,7 @@ def test_unknown_event_callback(client, app):
 
 def test_command_message_reset_as_user(requests_mock, client, app):
     users_info = requests_mock.post('https://slack.com/api/users.info', json={'user': {'is_admin': False, 'name': 'USER'}})
-    post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
+    post_ephemeral = requests_mock.post('https://slack.com/api/chat.postEphemeral', json={'ok': True})
 
     response = form_as_slack(
         client,
@@ -159,11 +159,11 @@ def test_command_message_reset_as_user(requests_mock, client, app):
     assert response.status_code == 200
 
     assert users_info.called
-    assert post_message.called
+    assert post_ephemeral.called
 
 def test_command_message_reset_as_admin(requests_mock, client, app):
     users_info = requests_mock.post('https://slack.com/api/users.info', json={'user': {'is_admin': True}})
-    post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
+    post_ephemeral = requests_mock.post('https://slack.com/api/chat.postEphemeral', json={'ok': True})
 
     response = form_as_slack(
         client,
@@ -180,7 +180,7 @@ def test_command_message_reset_as_admin(requests_mock, client, app):
     assert response.status_code == 200
 
     assert users_info.called
-    assert post_message.called
+    assert post_ephemeral.called
 
 def test_event_message_leaderboard(create_team_user, requests_mock, client, app):
     create_team_user('TEAM', 'USER1', given=3, received=2, trolls=0)

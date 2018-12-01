@@ -72,7 +72,7 @@ def create_team_table(team_id, channel=None):
     if table_exists(table_name):
         return
 
-    post_message(team_id, 'Creating table %s' % table_name, channel, ephemeral=true)
+    post_message(team_id, 'Creating table %s' % table_name, channel, ephemeral=True)
 
     sql = '''
     CREATE TABLE `%s` (
