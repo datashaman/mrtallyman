@@ -8,25 +8,67 @@ from mrtallyman.db import (delete_team_table,
 from mrtallyman.slack import generate_signature
 from urllib.parse import parse_qsl, urlencode
 
-def post_as_slack(client, app, body, endpoint='event', timestamp=None, secret=None):
+EXTRA_HEADERS = {
+    'data': {'Content-Type': 'application/x-www-form-urlencoded'},
+    'json': {'Content-Type': 'application/json'},
+}
+
+def post_as_slack(client,
+                  app,
+                  body,
+                  param_name,
+                  endpoint='event',
+                  timestamp=None,
+                  secret=None):
     if timestamp is None:
         timestamp = str(time.time())
     if secret is None:
         secret = os.environ['SLACK_SIGNING_SECRET']
+
+    if param_name == 'json':
+        signature_body = json.dumps(body, sort_keys=True)
+    else:
+        if param_name == 'data':
+            signature_body = urlencode(body)
     signature = generate_signature(timestamp,
                                    secret,
-                                   json.dumps(body, sort_keys=True))
-    return client.post(
-        '/slack/%s' % endpoint,
-        json=body,
-        headers={
-            'X-Slack-Request-Timestamp': timestamp,
-            'X-Slack-Signature': signature,
-        }
-    )
+                                   signature_body)
+
+    headers = {
+        'X-Slack-Request-Timestamp': timestamp,
+        'X-Slack-Signature': signature,
+    }
+
+    headers.update(EXTRA_HEADERS[param_name])
+
+    params = {
+        'path': '/slack/%s' % endpoint,
+        param_name: body,
+        'headers': headers,
+    }
+
+    return client.post(**params)
+
+def json_as_slack(client, app, body, endpoint='event', timestamp=None, secret=None):
+    return post_as_slack(client,
+                         app,
+                         body,
+                         'json',
+                         endpoint=endpoint,
+                         timestamp=timestamp,
+                         secret=secret)
+
+def form_as_slack(client, app, body, endpoint='command', timestamp=None, secret=None):
+    return post_as_slack(client,
+                         app,
+                         body,
+                         'data',
+                         endpoint=endpoint,
+                         timestamp=timestamp,
+                         secret=secret)
 
 def test_url_verification(client, app):
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -39,7 +81,7 @@ def test_url_verification(client, app):
     assert response.get_data(as_text=True) == '1234567890'
 
 def test_invalid_signature(client, app):
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -52,7 +94,7 @@ def test_invalid_signature(client, app):
     assert response.status_code == 400
 
 def test_invalid_timestamp(client, app):
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -65,7 +107,7 @@ def test_invalid_timestamp(client, app):
     assert response.status_code == 400
 
 def test_event_callback(client, app):
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -82,7 +124,7 @@ def test_event_callback(client, app):
     assert response.status_code == 200
 
 def test_unknown_event_callback(client, app):
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -98,23 +140,19 @@ def test_unknown_event_callback(client, app):
 
     assert response.status_code == 400
 
-def test_event_message_reset_as_user(requests_mock, client, app):
+def test_command_message_reset_as_user(requests_mock, client, app):
     users_info = requests_mock.post('https://slack.com/api/users.info', json={'user': {'is_admin': False, 'name': 'USER'}})
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
 
-    response = post_as_slack(
+    response = form_as_slack(
         client,
         app,
         {
-            'event': {
-                'channel_type': 'im',
-                'channel': 'CHANNEL',
-                'text': 'reset!',
-                'type': 'message',
-                'user': 'USER',
-            },
             'team_id': 'TEAM',
-            'type': 'event_callback',
+            'channel_id': 'CHANNEL',
+            'user_id': 'USER',
+            'command': '/mrtallyman',
+            'text': 'reset!',
         }
     )
 
@@ -123,23 +161,19 @@ def test_event_message_reset_as_user(requests_mock, client, app):
     assert users_info.called
     assert post_message.called
 
-def test_event_message_reset_as_admin(requests_mock, client, app):
+def test_command_message_reset_as_admin(requests_mock, client, app):
     users_info = requests_mock.post('https://slack.com/api/users.info', json={'user': {'is_admin': True}})
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
 
-    response = post_as_slack(
+    response = form_as_slack(
         client,
         app,
         {
-            'event': {
-                'channel_type': 'im',
-                'channel': 'CHANNEL',
-                'text': 'reset!',
-                'type': 'message',
-                'user': 'USER',
-            },
             'team_id': 'TEAM',
-            'type': 'event_callback',
+            'channel_id': 'CHANNEL',
+            'user_id': 'USER',
+            'command': '/mrtallyman',
+            'text': 'reset!',
         }
     )
 
@@ -169,7 +203,7 @@ def test_event_message_leaderboard(create_team_user, requests_mock, client, app)
     )
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -222,7 +256,7 @@ def test_event_message_empty_leaderboard(requests_mock, client, app):
     )
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -250,7 +284,7 @@ def test_event_message_tally_me(requests_mock, create_team_user, client, app):
     create_team_user('TEAM', 'USER', given=5, received=3, trolls=1)
 
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -274,7 +308,7 @@ def test_event_message_tally_me(requests_mock, create_team_user, client, app):
     })
 
 def test_event_app_mention(requests_mock, client, app):
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -294,7 +328,7 @@ def test_event_app_mention(requests_mock, client, app):
 
 def test_event_app_mention_leaderboard(requests_mock, client, app):
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -316,7 +350,7 @@ def test_event_app_mention_leaderboard(requests_mock, client, app):
 
 def test_event_app_mention_me(requests_mock, client, app):
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -338,7 +372,7 @@ def test_event_app_mention_me(requests_mock, client, app):
 
 def test_event_app_mention_banana(requests_mock, client, app):
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -360,7 +394,7 @@ def test_event_app_mention_banana(requests_mock, client, app):
 
 def test_event_app_mention_dayo(requests_mock, client, app):
     post_message = requests_mock.post('https://slack.com/api/chat.postMessage', json={'ok': True})
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -401,7 +435,7 @@ def test_event_message_banana(requests_mock, create_team_user, client, app):
         }
     )
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -448,7 +482,7 @@ def test_event_reaction_added_banana(requests_mock, create_team_user, client, ap
         }
     )
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -489,7 +523,7 @@ def test_event_reaction_removed_banana(requests_mock, create_team_user, client, 
         }
     )
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -529,7 +563,7 @@ def test_event_reaction_added_banana_to_bot(requests_mock, create_team_user, cli
         }
     )
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -567,7 +601,7 @@ def test_event_reaction_added_troll(requests_mock, create_team_user, client, app
         }
     )
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -605,7 +639,7 @@ def test_event_reaction_removed_troll(requests_mock, create_team_user, client, a
         }
     )
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {
@@ -642,7 +676,7 @@ def test_event_reaction_added_troll_to_bot(requests_mock, create_team_user, clie
         }
     )
 
-    response = post_as_slack(
+    response = json_as_slack(
         client,
         app,
         {

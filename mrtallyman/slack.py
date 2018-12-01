@@ -59,7 +59,8 @@ def valid_request(app, request):
     timestamp = request.headers['X-Slack-Request-Timestamp']
     if abs(time.time() - float(timestamp)) > 60 * 5:
         return False
-    signature = generate_signature(timestamp, os.environ['SLACK_SIGNING_SECRET'], request.get_data().decode())
+    data = request.get_data().decode()
+    signature = generate_signature(timestamp, os.environ['SLACK_SIGNING_SECRET'], data)
     return hmac.compare_digest(signature, request.headers['X-Slack-Signature'])
 
 def handle_request(app, request):

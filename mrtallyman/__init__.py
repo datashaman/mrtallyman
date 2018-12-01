@@ -83,23 +83,6 @@ def generate_leaderboards(team_id, event):
     post_message(team_id, '\n\n'.join(leaderboards), event['channel'])
 
 @task
-def reset_team_table(team_id, event):
-    channel = event['channel']
-
-    response = get_client(team_id).api_call(
-        'users.info',
-        user=event['user']
-    )
-
-    team = get_team_config(team_id)
-
-    if response['user']['is_admin'] or response['user'].get('name') == team['user_id']:
-        delete_team_table(team_id, channel)
-        create_team_table(team_id, channel)
-    else:
-        post_message(team_id, "Nice try, buddy!", channel)
-
-@task
 def generate_me(team_id, event):
     team = get_team_config(team_id)
     user = get_team_user(team_id, event['user'])
@@ -281,6 +264,23 @@ def handle_config(request):
     if not response['ok']:
         print(response)
 
+def handle_reset(request):
+    team_id = request.form['team_id']
+    channel = request.form['channel_id']
+
+    response = get_client(team_id).api_call(
+        'users.info',
+        user=request.form['user_id']
+    )
+
+    team = get_team_config(team_id)
+
+    if response['user']['is_admin'] or response['user'].get('name') == team['user_id']:
+        delete_team_table(team_id, channel)
+        create_team_table(team_id, channel)
+    else:
+        post_message(team_id, "Nice try, buddy!", channel)
+
 def create_app(config=None):
     from dotenv import load_dotenv
     load_dotenv()
@@ -329,6 +329,9 @@ def create_app(config=None):
 
             if text in ['config', 'configure']:
                 handle_config(request)
+
+            if text in ['reset!']:
+                handle_reset(request)
 
             return ''
         abort(403)
@@ -430,9 +433,6 @@ def create_app(config=None):
 
         if channel_type == 'channel' and 'subtype' not in event:
             update_scores_message(team_id, event)
-
-        elif channel_type == 'im' and event_text == 'reset!':
-            reset_team_table(team_id, event)
 
         elif channel_type == 'im' and event_text in ['bananas', 'leaderboard', 'tally']:
             generate_leaderboards(team_id, event)

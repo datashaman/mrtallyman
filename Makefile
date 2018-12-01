@@ -27,7 +27,7 @@ test-fast:
 	pytest -sv --ff -x tests/
 
 test-coverage:
-	pytest -sv --cov-report term-missing --cov=app --fulltrace tests/
+	pytest -sv --cov-report term-missing --cov=mrtallyman --fulltrace tests/
 
 clean:
 	rm -rf .coverage .pytest_cache/
