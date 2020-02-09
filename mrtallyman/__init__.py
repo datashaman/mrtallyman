@@ -36,6 +36,9 @@ def get_reward_emojis(team):
 def get_troll_emojis(team):
     return team['troll_emojis'].split(',')
 
+def get_user_name(info):
+    return info['user']['profile']['display_name'] or info['user']['profile']['real_name']
+
 def generate_leaderboard(team, users, column='received'):
     if column == 'trolls':
         emoji = ':%s:' % get_troll_emojis(team)[0]
@@ -49,13 +52,13 @@ def generate_leaderboard(team, users, column='received'):
     sorted_users = sorted(filtered_users, key=lambda u: u.get(column, 0), reverse=True)[:10]
     for index, user in enumerate(sorted_users):
         info = get_user_info(team['id'], user['user_id'])
-        display_name = info['user']['profile']['display_name']
-        leaderboard.append('%d. %s - %d %s' % (index+1, display_name, user.get(column, 0), emoji))
+        user_name = get_user_name(info)
+        leaderboard.append('%d. %s - %d %s' % (index+1, user_name, user.get(column, 0), emoji))
     return '\n'.join(leaderboard)
 
 @memoize
 def get_user_info(team_id, user_id):
-    return get_client(team_id).api_call('users.info', user=user_id)
+    return get_client(team_id).users_info(user=user_id)
 
 @task
 def generate_leaderboards(team_id, event):
@@ -86,8 +89,7 @@ def generate_leaderboards(team_id, event):
 def reset_team_table(team_id, event):
     channel = event['channel']
 
-    response = get_client(team_id).api_call(
-        'users.info',
+    response = get_client(team_id).users_info(
         user=event['user']
     )
 
@@ -144,19 +146,19 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
         info = get_user_info(team_id, recipient)
         if info['user']['is_bot']:
             if report:
-                display_name = info['user']['profile']['real_name_normalized']
-                output.append("%s is a bot. Bots don't need :%s:."  % (display_name, emoji))
+                user_name = get_user_name(info)
+                output.append("%s is a bot. Bots don't need :%s:."  % (user_name, emoji))
         else:
             given += score
             user = update_team_user(team_id, recipient, 'received', score)
 
             if report:
-                display_name = info['user']['profile']['display_name']
+                user_name = get_user_name(info)
                 if os.environ.get('PYTEST_CURRENT_TEST'):
                     affirmation = 'Done.'
                 else:
                     affirmation = random.choice(AFFIRMATIONS)
-                output.append('%s %s has %d :%s:!'% (affirmation, display_name, user['received'], emoji))
+                output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['received'], emoji))
 
     update_team_user(team_id, giver, 'given', given)
 
@@ -276,7 +278,7 @@ def handle_config(request):
         },
     }
 
-    response = get_client(request.form['team_id']).api_call('dialog.open', **payload)
+    response = get_client(request.form['team_id']).dialog_open(**payload)
 
     if not response['ok']:
         print(response)
