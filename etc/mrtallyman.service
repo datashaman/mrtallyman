@@ -1,0 +1,14 @@
+[Unit]
+Description=mrtallyman service
+
+[Service]
+ExecStart=/home/marlinf/.virtualenvs/mrtallyman/bin/gunicorn --workers=2
+WorkingDirectory=/home/marlinf/mrtallyman/
+Restart=always
+KillSignal=SIGQUIT
+Type=notify
+StandardError=syslog
+NotifyAccess=all
+
+[Install]
+WantedBy=multi-user.target

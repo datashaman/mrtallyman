@@ -1,12 +1,12 @@
 import pymysql
 import os
+import slack
 
 from .decorators import memoize
 from .utilities import team_log
 from .slack import get_bot_by_token
 from contextlib import contextmanager
 from pymysql.err import ProgrammingError
-from slackclient import SlackClient
 
 @contextmanager
 def db_cursor():
@@ -234,7 +234,7 @@ def init_db(app):
     create_config_table()
 
     token = os.environ['SLACK_API_TOKEN']
-    client = SlackClient(token)
+    client = slack.WebClient(token=token)
     response = client.api_call('auth.test')
     if not response['ok']:
         abort(400)

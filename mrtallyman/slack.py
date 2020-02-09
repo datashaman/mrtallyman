@@ -1,9 +1,9 @@
 import hashlib
 import hmac
 import os
+import slack
 import time
 
-from slackclient import SlackClient
 from .decorators import memoize
 
 handlers = {}
@@ -28,15 +28,14 @@ def on(name):
 def get_client(team_id):
     from .db import get_bot_access_token
     token = get_bot_access_token(team_id)
-    return SlackClient(token)
+    return slack.WebClient(token=token)
 
 def get_bot_by_token(token):
-    client = SlackClient(token)
-    return client.api_call('auth.test')
+    client = slack.WebClient(token=token)
+    return client.auth_test()
 
 def post_message(team_id, text, channel):
-    get_client(team_id).api_call(
-        'chat.postMessage',
+    get_client(team_id).chat_postMessage(
         channel=channel,
         text=text
     )
