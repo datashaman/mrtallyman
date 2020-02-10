@@ -84,7 +84,7 @@ def generate_leaderboards(team_id, event):
         emoji = get_reward_emojis(team)[0]
         leaderboards.append('Needs moar :%s:' % emoji)
 
-    post_message(team_id, '\n\n'.join(leaderboards), event['channel'])
+    post_message(team_id, '\n\n'.join(leaderboards), event['channel'], event['ts'])
 
 @task
 def reset_team_table(team_id, event):
@@ -100,7 +100,11 @@ def reset_team_table(team_id, event):
         delete_team_table(team_id, channel)
         create_team_table(team_id, channel)
     else:
-        post_message(team_id, "Nice try, buddy!", channel)
+        if event.get('subtype') == 'message_replied':
+            ts = event['ts']
+        else:
+            ts = None
+        post_message(team_id, "Nice try, buddy!", channel, ts)
 
 @task
 def generate_me(team_id, event):
@@ -127,7 +131,11 @@ def generate_me(team_id, event):
             text = ''
 
     if text:
-        post_message(team_id, text, event['channel'])
+        if event.get('subtype') == 'message_replied':
+            ts = event['ts']
+        else:
+            ts = None
+        post_message(team_id, text, event['channel'], ts)
 
 def update_users(team_id, channel, giver, recipients, score=1, report=True):
     recipients = set(recipients)
@@ -178,6 +186,11 @@ def update_scores_message(team_id, event):
     else:
         message = event
 
+    if event.get('subtype') == 'message_replied':
+        ts = event['ts']
+    else:
+        ts = None
+
     team = get_team_config(team_id)
 
     for emoji in get_reward_emojis(team):
@@ -189,7 +202,7 @@ def update_scores_message(team_id, event):
                 channel = event['channel']
                 report = update_users(team_id, channel, event['user'], recipients)
                 text = ' '.join(report)
-                post_message(team_id, text, channel)
+                post_message(team_id, text, channel, ts)
 
 @task
 def update_scores_reaction(team_id, event):
@@ -405,6 +418,11 @@ def create_app(config=None):
     def app_mention_event(payload):
         event = payload['event']
         if event.get('subtype') != 'bot_message' and not event.get('edited'):
+            if event.get('subtype') == 'message_replied':
+                ts = event['ts']
+            else:
+                ts = None
+
             team_id = payload['team_id']
             bot_id = get_bot_id(team_id)
             channel = event['channel']
@@ -419,10 +437,10 @@ def create_app(config=None):
                 generate_me(team_id, event)
 
             elif event['text'] == '<@%s> banana' % bot_id:
-                post_message(team_id, random.choice(BANANA_URLS), channel)
+                post_message(team_id, random.choice(BANANA_URLS), channel, ts)
 
             elif event['text'] == '<@%s> dayo' % bot_id:
-                post_message(team_id, random.choice(DAYO_URLS), channel)
+                post_message(team_id, random.choice(DAYO_URLS), channel, ts)
 
     @on('message')
     def message_event(payload):
