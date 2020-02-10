@@ -34,9 +34,10 @@ def get_bot_by_token(token):
     client = slack.WebClient(token=token)
     return client.auth_test()
 
-def post_message(team_id, text, channel):
+def post_message(team_id, text, channel, thread_ts=None):
     get_client(team_id).chat_postMessage(
         channel=channel,
+        thread_ts=thread_ts,
         text=text
     )
 
