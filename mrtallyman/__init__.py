@@ -84,7 +84,12 @@ def generate_leaderboards(team_id, event):
         emoji = get_reward_emojis(team)[0]
         leaderboards.append('Needs moar :%s:' % emoji)
 
-    post_message(team_id, '\n\n'.join(leaderboards), event['channel'], event['ts'])
+    if event['type'] == 'message':
+        ts = None
+    else:
+        ts = event['ts']
+
+    post_message(team_id, '\n\n'.join(leaderboards), event['channel'], ts)
 
 @task
 def reset_team_table(team_id, event):
@@ -131,11 +136,7 @@ def generate_me(team_id, event):
             text = ''
 
     if text:
-        if event.get('subtype') == 'message_replied':
-            ts = event['ts']
-        else:
-            ts = None
-        post_message(team_id, text, event['channel'], ts)
+        post_message(team_id, text, event['channel'], event.get('thread_ts'))
 
 def update_users(team_id, channel, giver, recipients, score=1, report=True):
     recipients = set(recipients)
