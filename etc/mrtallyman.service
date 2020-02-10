@@ -2,7 +2,7 @@
 Description=mrtallyman service
 
 [Service]
-ExecStart=/home/marlinf/.virtualenvs/mrtallyman/bin/gunicorn --workers=2
+ExecStart=/home/marlinf/.virtualenvs/mrtallyman/bin/gunicorn --workers=2 --bind unix:mrtallyman.sock 'server:create_app()'
 WorkingDirectory=/home/marlinf/mrtallyman/
 Restart=always
 KillSignal=SIGQUIT
