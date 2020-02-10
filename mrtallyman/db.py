@@ -60,8 +60,7 @@ def create_config_table():
         `troll_emojis` varchar(255),
         `reset_interval` varchar(255),
         `daily_quota` int,
-        primary key (`id`),
-        unique key (`team_name`)
+        primary key (`id`)
     );''' % get_table_name('config')
 
     with db_cursor() as cursor:
@@ -235,7 +234,7 @@ def init_db(app):
 
     token = os.environ['SLACK_API_TOKEN']
     client = slack.WebClient(token=token)
-    response = client.api_call('auth.test')
+    response = client.auth_test()
     if not response['ok']:
         abort(400)
     create_team_table(response['team_id'])

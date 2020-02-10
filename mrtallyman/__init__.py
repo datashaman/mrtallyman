@@ -79,7 +79,8 @@ def generate_leaderboards(team_id, event):
         trolls = generate_leaderboard(team, users, 'trolls')
         if trolls:
             leaderboards.append('*Trolls*\n\n%s' % trolls)
-    else:
+
+    if not leaderboards:
         emoji = get_reward_emojis(team)[0]
         leaderboards.append('Needs moar :%s:' % emoji)
 
