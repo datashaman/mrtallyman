@@ -262,6 +262,14 @@ def handle_config(request):
                             'label': 'Reset Monthly',
                             'value': 'monthly',
                         },
+                        {
+                            'label': 'Reset Quarterly',
+                            'value': 'quarterly',
+                        },
+                        {
+                            'label': 'Reset Yearly',
+                            'value': 'yearly',
+                        },
                     ],
                 },
                 {
