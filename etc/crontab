@@ -1,0 +1,9 @@
+PATH=/home/marlinf/.virtualenvs/mrtallyman/bin:/usr/bin:/bin
+
+@daily root systemctl restart mrtallyman
+@daily marlinf cd /home/marlinf/mrtallyman && flask reset-scores daily && flask reset-quotas
+@weekly marlinf cd /home/marlinf/mrtallyman && flask reset-scores weekly
+@monthly marlinf cd /home/marlinf/mrtallyman && flask reset-scores monthly
+0 0 1 1,4,7,10 * marlinf cd /home/marlinf/mrtallyman && flask reset-scores quarterly
+@yearly marlinf cd /home/marlinf/mrtallyman && flask reset-scores yearly
+
