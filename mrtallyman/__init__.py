@@ -39,8 +39,8 @@ def get_troll_emojis(team):
 def get_user_name(info):
     return info['user']['profile']['display_name'] or info['user']['profile']['real_name']
 
-def generate_leaderboard(team, users, column='received'):
-    if column == 'trolls':
+def generate_leaderboard(team, users, column='rewards_received'):
+    if column in ['trolls_received', 'trolls_given']:
         emoji = ':%s:' % get_troll_emojis(team)[0]
     else:
         emoji = ':%s:' % get_reward_emojis(team)[0]
@@ -68,17 +68,21 @@ def generate_leaderboards(team_id, event):
     users = get_team_users(team_id)
 
     if users:
-        received = generate_leaderboard(team, users, 'received')
-        if received:
-            leaderboards.append('*Received*\n\n%s' % received)
+        rewards_received = generate_leaderboard(team, users, 'rewards_received')
+        if rewards_received:
+            leaderboards.append('*Rewards Received*\n\n%s' % rewards_received)
 
-        given = generate_leaderboard(team, users, 'given')
-        if given:
-            leaderboards.append('*Given*\n\n%s' % given)
+        rewards_given = generate_leaderboard(team, users, 'rewards_given')
+        if rewards_given:
+            leaderboards.append('*Rewards Given*\n\n%s' % rewards_given)
 
-        trolls = generate_leaderboard(team, users, 'trolls')
-        if trolls:
-            leaderboards.append('*Trolls*\n\n%s' % trolls)
+        trolls_received = generate_leaderboard(team, users, 'trolls_received')
+        if trolls_received:
+            leaderboards.append('*Trolls*\n\n%s' % trolls_received)
+
+        trolls_given = generate_leaderboard(team, users, 'trolls_given')
+        if trolls_given:
+            leaderboards.append('*Troll Hunters*\n\n%s' % trolls_given)
 
     if not leaderboards:
         emoji = get_reward_emojis(team)[0]
@@ -123,12 +127,19 @@ def generate_me(team_id, event):
     if user:
         text = []
 
-        for column in ['received', 'given', 'trolls']:
+        for column in ['rewards_received', 'rewards_given', 'trolls_received', 'trolls_given']:
             if user.get(column, 0) > 0:
-                if column == 'trolls':
-                    text.append('received %d :%s:' % (user['trolls'], troll_emoji))
+                if column in ['rewards_received', 'trolls_received']:
+                    action = 'received'
                 else:
-                    text.append('%s %d :%s:' % (column, user[column], reward_emoji))
+                    action = 'given'
+
+                if column in ['trolls_received', 'trolls_given']:
+                    emoji = troll_emoji
+                else:
+                    emoji = reward_emoji
+
+                text.append('%s %d :%s:' % (action, user[column], emoji))
 
         if text:
             text = 'You have ' + ', '.join(text)
@@ -140,15 +151,14 @@ def generate_me(team_id, event):
 
 def update_users(team_id, channel, giver, recipients, score=1, report=True):
     recipients = set(recipients)
+    team = get_team_config(team_id)
+    emoji = get_reward_emojis(team)[0]
 
     if giver in recipients:
-        return ['No :banana: for you! _nice try, human_']
+        return ['No :%s: for you! _nice try, human_' % emoji]
 
     if report:
         output = []
-
-    team = get_team_config(team_id)
-    emoji = get_reward_emojis(team)[0]
 
     given = 0
 
@@ -160,7 +170,7 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
                 output.append("%s is a bot. Bots don't need :%s:."  % (user_name, emoji))
         else:
             given += score
-            user = update_team_user(team_id, recipient, 'received', score)
+            user = update_team_user(team_id, recipient, 'rewards_received', score)
 
             if report:
                 user_name = get_user_name(info)
@@ -168,17 +178,48 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
                     affirmation = 'Done.'
                 else:
                     affirmation = random.choice(AFFIRMATIONS)
-                output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['received'], emoji))
+                output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['rewards_received'], emoji))
 
-    update_team_user(team_id, giver, 'given', given)
+    update_team_user(team_id, giver, 'rewards_given', given)
 
     if report:
         return output
 
-def update_trolls(team_id, recipient, score=1):
-    info = get_user_info(team_id, recipient)
-    if not info['user']['is_bot']:
-        update_team_user(team_id, recipient, 'trolls', score)
+def update_trolls(team_id, channel, giver, recipients, score=1, report=True):
+    recipients = set(recipients)
+    team = get_team_config(team_id)
+    emoji = get_troll_emojis(team)[0]
+
+    if giver in recipients:
+        return ['Really? Who does that? No :%s: for you!' % emoji]
+
+    if report:
+        output = []
+
+    given = 0
+
+    for recipient in recipients:
+        info = get_user_info(team_id, recipient)
+        if info['user']['is_bot']:
+            if report:
+                user_name = get_user_name(info)
+                output.append("%s is a bot. Bots don't need :%s:."  % (user_name, emoji))
+        else:
+            given += score
+            user = update_team_user(team_id, recipient, 'trolls_received', score)
+
+            if report:
+                user_name = get_user_name(info)
+                if os.environ.get('PYTEST_CURRENT_TEST'):
+                    affirmation = 'Done.'
+                else:
+                    affirmation = random.choice(AFFIRMATIONS)
+                output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['trolls_received'], emoji))
+
+    update_team_user(team_id, giver, 'trolls_given', given)
+
+    if report:
+        return output
 
 @task
 def update_scores_message(team_id, event):
@@ -205,6 +246,17 @@ def update_scores_message(team_id, event):
                 text = ' '.join(report)
                 post_message(team_id, text, channel, ts)
 
+    for emoji in get_troll_emojis(team):
+        found = re.search(':%s:' % emoji, message['text'])
+        if found:
+            recipients = re.findall(r'<@([A-Z0-9]+)>', message['text'])
+
+            if recipients:
+                channel = event['channel']
+                report = update_trolls(team_id, channel, event['user'], recipients)
+                text = ' '.join(report)
+                post_message(team_id, text, channel, ts)
+
 @task
 def update_scores_reaction(team_id, event):
     team = get_team_config(team_id)
@@ -214,7 +266,7 @@ def update_scores_reaction(team_id, event):
     if event['reaction'] in get_reward_emojis(team) and event.get('item_user') and event['user'] != event['item_user']:
         update_users(team_id, None, event['user'], [event['item_user']], score, False)
     elif event['reaction'] in get_troll_emojis(team) and event.get('item_user') and event['user'] != event['item_user']:
-        update_trolls(team_id, event['item_user'], score)
+        update_trolls(team_id, None, event['user'], [event['item_user']], score, False)
 
 def handle_config(request):
     team_id = request.form['team_id']

@@ -79,11 +79,12 @@ def create_team_table(team_id, channel=None):
         `id` int auto_increment,
         `team_id` varchar(255) not null,
         `user_id` varchar(255) not null,
-        `given` int default 0 not null,
-        `given_today` int default 0 not null,
-        `received` int default 0 not null,
-        `trolls` int default 0 not null,
-        `trolls_today` int default 0 not null,
+        `rewards_given` int default 0 not null,
+        `rewards_given_today` int default 0 not null,
+        `rewards_received` int default 0 not null,
+        `trolls_given` int default 0 not null,
+        `trolls_given_today` int default 0 not null,
+        `trolls_received` int default 0 not null,
         primary key (`id`),
         unique key (`team_id`, `user_id`),
         foreign key (`team_id`) references `team_config`(`id`)
@@ -152,15 +153,16 @@ def create_team_user(team_id, user_id, **attrs):
     user = {
         'team_id': team_id,
         'user_id': user_id,
-        'given': 0,
-        'given_today': 0,
-        'received': 0,
-        'trolls': 0,
-        'trolls_today': 0,
+        'rewards_given': 0,
+        'rewards_given_today': 0,
+        'rewards_received': 0,
+        'trolls_given': 0,
+        'trolls_given_today': 0,
+        'trolls_received': 0,
     }
     user.update(attrs)
 
-    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `given`, `given_today`, `received`, `trolls`, `trolls_today`) values (%(team_id)s, %(user_id)s, %(given)s, %(given_today)s, %(received)s, %(trolls)s, %(trolls_today)s)'
+    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `rewards_given`, `rewards_given_today`, `rewards_received`, `trolls_given`, `trolls_given_today`, `trolls_received`) values (%(team_id)s, %(user_id)s, %(rewards_given)s, %(rewards_given_today)s, %(rewards_received)s, %(trolls_given)s, %(trolls_given_today)s, %(trolls_received)s)'
 
     with db_cursor() as cursor:
         cursor.execute(sql, user)
@@ -257,5 +259,5 @@ def reset_team_quotas():
         teams = cursor.fetchall()
 
         for team in teams:
-            sql = 'UPDATE `team_' + team['id'] + '` SET given_today = %s, trolls_today = %s'
+            sql = 'UPDATE `team_' + team['id'] + '` SET rewards_given_today = %s, trolls_given_today = %s'
             cursor.execute(sql, (0, 0))
