@@ -82,3 +82,4 @@ All of the above app mentions can also be used in a private channel with the bot
 If you are an admin in the workspace or your username is in the comma-separated environment variable _ADMINS_, you can privately message the bot to reset the leaderboards:
 
     reset!
+
