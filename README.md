@@ -19,13 +19,18 @@ Grant the following OAuth scopes to the bot:
 
 ## Local Development
 
+Venv Setup:
+
+     virtualenv .venv
+     source .venv/bin/activate
+
 Installation (production):
 
-    mkvirtualenv -r requirements.txt mrtallyman
+    pip3 install -r requirements.txt
 
 Installation (testing and development):
 
-    mkvirtualenv -r requirements-testing.txt mrtallyman
+    pip3 install -r requirements-testing.txt 
 
 Configuration for development:
 
@@ -36,6 +41,23 @@ Edit the .env to match your app's details.
 Running:
 
     flask run
+
+## DB Setup:
+
+Install MySQL or Mariadb:
+
+    sudo yum install mariadb-server mariadb-client
+    sudo systemctl enable --now mariadb
+    sudo mysql_secure_installation
+
+Next create non root user and password:
+
+    mysql -u root -p
+    Mariadb> CREATE DATABASE tallymandb;
+    Mariadb> CREATE USER 'mrtallymanuser'@'localhost' IDENTIFIED BY 'passwordREDACTED';
+    Mariadb> GRANT ALL PRIVILEGES ON tallymandb. * TO 'mrtallymanuser'@'localhost';
+    Mariadb> FLUSH PRIVILEGES;
+
 
 ## Operations
 
