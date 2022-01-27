@@ -19,6 +19,11 @@ Grant the following OAuth scopes to the bot:
 
 ## Local Development
 
+Dependencies to install:
+
+    sudo yum install python3-devel
+    sudo yum install gcc
+
 Venv Setup:
 
      virtualenv .venv
