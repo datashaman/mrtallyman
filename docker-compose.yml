@@ -20,13 +20,15 @@ services:
   database:
       image: public.ecr.aws/bitnami/mysql:5.7
       container_name: database
-      restart: always
-      ports:
-        - 3306:3306
-      env_file:
-      - .env
-      volumes:
+      # env_file:
+      # - .env
+      environment:
+        MYSQL_DATABASE: tallymandb
+        MYSQL_ROOT_PASSWORD: Ccoc6MzqzWuw3NLE59
+        MYSQL_PASSWORD: Ccoc6MzqzWuw3NLE59
           - mysql_data:/var/lib/mysql
+      ports:
+        - 3306
 
 volumes:
    mysql_data:
