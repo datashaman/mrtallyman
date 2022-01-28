@@ -8,8 +8,9 @@ services:
 
     ports:
       - '8000'
-    links:
+    networks:
       - database
+      - external-net
     # volumes:
     #   - "./nginx/data/mediawiki:/var/www/html/mediawiki"
     env_file:
@@ -30,7 +31,16 @@ services:
           - mysql_data:/var/lib/mysql
       ports:
         - 3306
+      networks:
+        - database
 
 volumes:
    mysql_data:
+
+networks:
+  external-net:
+    external:
+      name: external-net
+  db:
+    driver: bridge
 
