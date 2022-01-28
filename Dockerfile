@@ -15,8 +15,8 @@ RUN pip3 install --upgrade pip && \
     pip3 install -U --no-cache-dir -r requirements.txt
 EXPOSE 80  
 
-COPY etc/nginx.conf /code/default.conf
-COPY etc/nginx.conf /shared/app/etc/nginx/conf.d/
+# COPY etc/nginx.conf /code/default.conf
+# COPY etc/nginx.conf /shared/app/etc/nginx/conf.d/
 
 VOLUME /shared
 
