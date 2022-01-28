@@ -6,5 +6,3 @@ python-dotenv
 requests
 slackclient
 uwsgi
-requests
-# Added requests

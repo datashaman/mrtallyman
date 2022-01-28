@@ -11,8 +11,8 @@ COPY . /code/
 COPY etc/uwsgi.ini /code/uwsgi.ini
 
 
-RUN pip install --upgrade pip
-RUN pip install flask uwsgi
+RUN pip3 install --upgrade pip && \
+    pip3 install -U --no-cache-dir -r requirements.txt
 EXPOSE 8000  
 
 COPY etc/nginx.conf /code/default.conf
