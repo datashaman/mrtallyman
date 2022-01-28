@@ -7,3 +7,4 @@ requests
 slackclient
 uwsgi
 requests
+# Added requests
