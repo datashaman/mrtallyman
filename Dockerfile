@@ -8,6 +8,7 @@ RUN mkdir /code
 WORKDIR /code  
 ADD . /code/  
 COPY . /code/
+COPY etc/uwsgi.ini /code/uwsgi.ini
 
 
 RUN pip install --upgrade pip
