@@ -28,7 +28,9 @@ services:
         MYSQL_DATABASE: tallymandb
         MYSQL_ROOT_PASSWORD: Ccoc6MzqzWuw3NLE59
         MYSQL_PASSWORD: Ccoc6MzqzWuw3NLE59
-          - mysql_data:/var/lib/mysql
+      volumes:
+        - ./mysqldata:/var/lib/mysql:rw,delegated
+          # - mysql_data:/var/lib/mysql
       ports:
         - 3306
       networks:
