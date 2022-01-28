@@ -1,0 +1,33 @@
+version: '3'
+
+
+      
+services:
+  web:
+    build: ./
+
+    ports:
+      - '8000:8000'
+    links:
+      - database
+    # volumes:
+    #   - "./nginx/data/mediawiki:/var/www/html/mediawiki"
+    env_file:
+      - .env
+    restart: always
+
+# MariaDB/MySQL DB    
+  database:
+      image: public.ecr.aws/bitnami/mysql:5.7
+      container_name: database
+      restart: always
+      ports:
+        - 3306:3306
+      env_file:
+      - .env
+      volumes:
+          - mysql_data:/var/lib/mysql
+
+volumes:
+   mysql_data:
+
