@@ -41,6 +41,6 @@ networks:
   external-net:
     external:
       name: external-net
-  db:
+  database:
     driver: bridge
 
