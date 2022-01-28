@@ -30,8 +30,8 @@ services:
         MYSQL_PASSWORD: Ccoc6MzqzWuw3NLE59
         MYSQL_ROOT_HOST: '%'
       volumes:
-        - ./mysqldata:/var/lib/mysql:rw,delegated
-          # - mysql_data:/var/lib/mysql
+        # - ./mysqldata:/var/lib/mysql:rw,delegated
+          - mysql_data:/var/lib/mysql
       ports:
         - 3306
       networks:
