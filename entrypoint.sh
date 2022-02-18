@@ -5,4 +5,4 @@
 # cp /code/default.conf /shared/app/etc/nginx/conf.d/
 
 # uwsgi --ini uwsgi.ini
-flask run
+flask run -p 8000
