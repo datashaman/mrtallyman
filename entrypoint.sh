@@ -4,4 +4,5 @@
 
 # cp /code/default.conf /shared/app/etc/nginx/conf.d/
 
-uwsgi --ini uwsgi.ini
+# uwsgi --ini uwsgi.ini
+flask run
