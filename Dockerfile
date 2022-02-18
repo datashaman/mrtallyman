@@ -3,7 +3,7 @@ FROM python:3.6-slim
 
 RUN apt-get -y update
 RUN apt-get -y install htop \
-        python3-dev build-essential 
+        python3-dev build-essential libpcre3 libpcre3-dev mariadb-client
 RUN mkdir /code  
 WORKDIR /code  
 ADD . /code/  
