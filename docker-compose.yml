@@ -15,6 +15,8 @@ services:
     #   - "./nginx/data/mediawiki:/var/www/html/mediawiki"
     env_file:
       - .env
+    depends_on:
+      - database
     # restart: always
 
 # MariaDB/MySQL DB    
