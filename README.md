@@ -59,8 +59,8 @@ Next create non root user and password:
 
     mysql -u root -p
     Mariadb> CREATE DATABASE tallymandb;
-    Mariadb> CREATE USER 'mrtallymanuser'@'localhost' IDENTIFIED BY 'passwordREDACTED';
-    Mariadb> GRANT ALL PRIVILEGES ON tallymandb. * TO 'mrtallymanuser'@'localhost';
+    Mariadb> CREATE USER 'mrtallymanuser'@'%' IDENTIFIED BY 'REDACTED';
+    Mariadb> GRANT ALL PRIVILEGES ON tallymandb. * TO 'mrtallymanuser'@'%';
     Mariadb> FLUSH PRIVILEGES;
 
 
