@@ -1,0 +1,53 @@
+version: '3'
+
+
+      
+services:
+  web:
+    build: ./
+
+    ports:
+      - '8000:8000'
+    networks:
+      - database
+      - external-net
+    # volumes:
+    #   - "./nginx/data/mediawiki:/var/www/html/mediawiki"
+    env_file:
+      - .env
+    depends_on:
+      - database
+    # restart: always
+
+# MariaDB/MySQL DB    
+  database:
+      #image: public.ecr.aws/bitnami/mysql:5.7
+      image: mysql/mysql-server:latest # compatible with arm
+      container_name: database
+      # env_file:
+      # - .env
+      environment:
+        MYSQL_DATABASE: tallymandb
+        MYSQL_ROOT_PASSWORD: Ccoc6MzqzWuw3NLE59
+        MYSQL_PASSWORD: Ccoc6MzqzWuw3NLE59
+        MYSQL_ROOT_HOST: '%'
+        MYSQL_USER: mrtallymanuser
+        # MYSQL_HOST: database
+      volumes:
+        # - ./mysqldata:/var/lib/mysql:rw,delegated
+          - mysql_data:/var/lib/mysql
+      ports:
+        - 3306
+      networks:
+        - database
+
+volumes:
+   mysql_data:
+
+networks:
+  external-net:
+    external:
+      name: external-net
+  database:
+    driver: bridge
+

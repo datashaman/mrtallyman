@@ -5,3 +5,4 @@ pymysql[rsa]
 python-dotenv
 requests
 slackclient
+uwsgi
