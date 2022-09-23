@@ -17,7 +17,7 @@ MarkupSafe==1.1.1
 multidict==4.7.4
 mysql-connector-python==8.0.19
 pkg-resources==0.0.0
-protobuf==3.6.1
+protobuf==3.18.3
 pycparser==2.19
 PyMySQL==0.9.3
 python-dotenv==0.11.0
