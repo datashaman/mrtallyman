@@ -8,6 +8,9 @@ def team_log(team_id, message, channel=None, level='debug'):
 def get_reward_emojis(team):
     return team['reward_emojis'].split(',')
 
+def get_golden_emoji(team):
+    return team['golden_emoji']
+
 def get_troll_emojis(team):
     return team['troll_emojis'].split(',')
 

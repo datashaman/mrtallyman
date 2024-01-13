@@ -57,6 +57,7 @@ def create_config_table():
         `bot_access_token` varchar(255),
         `bot_user_id` varchar(255),
         `user_id` varchar(255),
+        `golden_emoji` varchar(255),
         `reward_emojis` varchar(255),
         `troll_emojis` varchar(255),
         `reset_interval` varchar(255),
@@ -83,7 +84,7 @@ def create_team_table(team_id, channel=None):
         `rewards_given` int default 0 not null,
         `rewards_given_today` int default 0 not null,
         `rewards_received` int default 0 not null,
-        `rewards_received_100x` int default 0 not null,
+        `golden_received` int default 0 not null,
         `trolls_given` int default 0 not null,
         `trolls_given_today` int default 0 not null,
         `trolls_received` int default 0 not null,
@@ -159,18 +160,19 @@ def update_team_user(team_id, user_id, attribute, value, giver=None):
 
 def create_team_user(team_id, user_id, **attrs):
     user = {
-        'team_id': team_id,
-        'user_id': user_id,
+        'golden_received': 0,
         'rewards_given': 0,
         'rewards_given_today': 0,
         'rewards_received': 0,
+        'team_id': team_id,
         'trolls_given': 0,
         'trolls_given_today': 0,
         'trolls_received': 0,
+        'user_id': user_id,
     }
     user.update(attrs)
 
-    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `rewards_given`, `rewards_given_today`, `rewards_received`, `trolls_given`, `trolls_given_today`, `trolls_received`) values (%(team_id)s, %(user_id)s, %(rewards_given)s, %(rewards_given_today)s, %(rewards_received)s, %(trolls_given)s, %(trolls_given_today)s, %(trolls_received)s)'
+    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `rewards_given`, `rewards_given_today`, `golden_received`, `rewards_received`, `trolls_given`, `trolls_given_today`, `trolls_received`) values (%(team_id)s, %(user_id)s, %(rewards_given)s, %(rewards_given_today)s, %(golden_received)s, %(rewards_received)s, %(trolls_given)s, %(trolls_given_today)s, %(trolls_received)s)'
 
     with db_cursor() as cursor:
         cursor.execute(sql, user)
@@ -191,12 +193,13 @@ def update_team_config(team_id, **attrs):
         args = attrs
         args['id'] = team_id
     else:
-        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, reward_emojis, troll_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
+        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, golden_emoji, reward_emojis, troll_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(golden_emoji)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
         team = {
             'access_token': '',
             'bot_access_token': '',
             'bot_user_id': '',
             'daily_quota': None,
+            'golden_emoji': 'star',
             'id': team_id,
             'reset_interval': 'never',
             'reward_emojis': 'banana',
