@@ -38,7 +38,7 @@ if [ ! -e .env ]; then
   read MYSQL_PORT
 
   echo "Enter the MySQL DB: "
-  read MYSQL_DB
+  read MYSQL_DATABASE
 
   echo "Enter the MySQL user: "
   read MYSQL_USER
@@ -61,7 +61,7 @@ if [ ! -e .env ]; then
   $MRTALLYMAN cp .env.example .env
   $MRTALLYMAN sed -i "
     s/GOOGLE_ANALYTICS_ID=db/GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}/
-    s/MYSQL_DB=db/MYSQL_DB=${MYSQL_DB}/
+    s/MYSQL_DATABASE=db/MYSQL_DATABASE=${MYSQL_DATABASE}/
     s/MYSQL_HOST=host/MYSQL_HOST=${MYSQL_HOST}/
     s/MYSQL_PASS=password/MYSQL_PASSWORD=${MYSQL_PASSWORD}/
     s/MYSQL_PORT=3306/MYSQL_PORT=${MYSQL_PORT}/
@@ -75,9 +75,9 @@ fi
 
 source .env
 
-sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DB}"
+sudo mysql -e "CREATE DATABASE IF NOT EXISTS ${MYSQL_DATABASE}"
 sudo mysql -e "CREATE USER IF NOT EXISTS '${MYSQL_USER}'@'$(hostname)' IDENTIFIED BY '${MYSQL_PASSWORD}'"
-sudo mysql -e "GRANT ALL PRIVILEGES ON ${MYSQL_DB}.* TO '${MYSQL_USER}'@'$(hostname)'"
+sudo mysql -e "GRANT ALL PRIVILEGES ON ${MYSQL_DATABASE}.* TO '${MYSQL_USER}'@'$(hostname)'"
 sudo mysql -e "FLUSH PRIVILEGES"
 
 if ! dpkg -s python3 > /dev/null; then

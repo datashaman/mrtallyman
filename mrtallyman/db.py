@@ -14,7 +14,7 @@ def db_cursor():
         host=os.environ.get('MYSQL_HOST', '127.0.0.1'),
         user=os.environ.get('MYSQL_USER'),
         password=os.environ.get('MYSQL_PASSWORD'),
-        db=os.environ.get('MYSQL_DB'),
+        db=os.environ.get('MYSQL_DATABASE'),
         autocommit=True,
         charset='utf8mb4',
         cursorclass=pymysql.cursors.DictCursor)

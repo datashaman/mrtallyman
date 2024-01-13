@@ -38,10 +38,10 @@ clean:
 	find . -type d -name __pycache__  -delete
 
 mysql:
-	$(MYSQL_CMD) "$(MYSQL_DB)"
+	$(MYSQL_CMD) "$(MYSQL_DATABASE)"
 
 mysql-recreate:
-	$(MYSQL_CMD) -e "drop database if exists $(MYSQL_DB); create database $(MYSQL_DB);"
+	$(MYSQL_CMD) -e "drop database if exists $(MYSQL_DATABASE); create database $(MYSQL_DATABASE);"
 
 deploy:
 	cat scripts/deploy.sh | ssh $(DEPLOY_HOST) 'cat>deploy.sh'
