@@ -1,4 +1,5 @@
 /.coverage
 /.env
-__pycache__/
 /.pytest_cache/
+/run/
+__pycache__/
