@@ -15,6 +15,7 @@ from .db import (init_db,
                     get_team_user,
                     get_team_users,
                     get_teams_info,
+                    reset_all_team_scores,
                     reset_team_quotas,
                     reset_team_scores,
                     update_team_config,
@@ -106,8 +107,7 @@ def reset_team_table(team_id, event):
     team = get_team_config(team_id)
 
     if response['user']['is_admin'] or response['user'].get('name') == team['user_id']:
-        delete_team_table(team_id, channel)
-        create_team_table(team_id, channel)
+        reset_team_scores(team_id)
     else:
         if event.get('subtype') == 'message_replied':
             ts = event['ts']
@@ -534,7 +534,7 @@ def create_app(config=None):
     @app.cli.command('reset-scores')
     @click.argument('reset_interval')
     def reset_scores_command(reset_interval):
-        reset_team_scores(reset_interval)
+        reset_all_team_scores(reset_interval)
 
     @app.cli.command('reset-quotas')
     def reset_quotas_command():
