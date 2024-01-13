@@ -83,6 +83,7 @@ def create_team_table(team_id, channel=None):
         `rewards_given` int default 0 not null,
         `rewards_given_today` int default 0 not null,
         `rewards_received` int default 0 not null,
+        `rewards_received_100x` int default 0 not null,
         `trolls_given` int default 0 not null,
         `trolls_given_today` int default 0 not null,
         `trolls_received` int default 0 not null,

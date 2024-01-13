@@ -144,6 +144,7 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
     recipients = set(recipients)
     team = get_team_config(team_id)
     emoji = get_reward_emojis(team)[0]
+    100x_emoji = get_100x_emoji(team)
 
     if giver in recipients:
         return ['No :%s: for you! _nice try, human_' % emoji]
