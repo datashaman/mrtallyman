@@ -12,7 +12,7 @@ from pymysql.err import ProgrammingError
 def db_cursor():
     db = pymysql.connect(
         host=os.environ.get('MYSQL_HOST', '127.0.0.1'),
-        port=os.environ.get('MYSQL_PORT', 3306),
+        port=int(os.environ.get('MYSQL_PORT', 3306)),
         user=os.environ.get('MYSQL_USER'),
         password=os.environ.get('MYSQL_PASSWORD'),
         db=os.environ.get('MYSQL_DATABASE'),
