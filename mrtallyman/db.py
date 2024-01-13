@@ -75,7 +75,7 @@ def create_team_table(team_id, channel=None):
     team_log(team_id, 'Creating table %s' % table_name, channel)
 
     sql = '''
-    CREATE TABLE `%s` (
+    CREATE TABLE IF NOT EXISTS `%s` (
         `id` int auto_increment,
         `team_id` varchar(255) not null,
         `user_id` varchar(255) not null,

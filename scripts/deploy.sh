@@ -7,7 +7,6 @@ if [ $# -lt 1 ]; then
 fi
 
 DEPLOY_BRANCH=$1
-FLASK_ENV=production
 MRTALLYMAN="sudo -sHu mrtallyman"
 
 if ! dpkg -s mysql-server > /dev/null; then
@@ -35,6 +34,9 @@ if [ ! -e .env ]; then
   echo "Enter the MySQL host: "
   read MYSQL_HOST
 
+  echo "Enter the MySQL port: "
+  read MYSQL_PORT
+
   echo "Enter the MySQL DB: "
   read MYSQL_DB
 
@@ -57,16 +59,18 @@ if [ ! -e .env ]; then
   read SLACK_SIGNING_SECRET
 
   $MRTALLYMAN cp .env.example .env
-  $MRTALLYMAN sed -i "s/FLASK_ENV=development/FLASK_ENV=${FLASK_ENV}/
-          s/GOOGLE_ANALYTICS_ID=db/GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}/
-          s/MYSQL_DB=db/MYSQL_DB=${MYSQL_DB}/
-          s/MYSQL_HOST=host/MYSQL_HOST=${MYSQL_HOST}/
-          s/MYSQL_PASS=password/MYSQL_PASSWORD=${MYSQL_PASSWORD}/
-          s/MYSQL_USER=user/MYSQL_USER=${MYSQL_USER}/
-          s/SLACK_API_TOKEN=1234567890/SLACK_API_TOKEN=${SLACK_API_TOKEN}/
-          s/SLACK_CLIENT_ID=1234567890/SLACK_CLIENT_ID=${SLACK_CLIENT_ID}/
-          s/SLACK_CLIENT_SECRET=1234567890/SLACK_CLIENT_SECRET=${SLACK_CLIENT_SECRET}/
-          s/SLACK_SIGNING_SECRET=1234567890/SLACK_SIGNING_SECRET=${SLACK_CLIENT_ID}/" .env
+  $MRTALLYMAN sed -i "
+    s/GOOGLE_ANALYTICS_ID=db/GOOGLE_ANALYTICS_ID=${GOOGLE_ANALYTICS_ID}/
+    s/MYSQL_DB=db/MYSQL_DB=${MYSQL_DB}/
+    s/MYSQL_HOST=host/MYSQL_HOST=${MYSQL_HOST}/
+    s/MYSQL_PASS=password/MYSQL_PASSWORD=${MYSQL_PASSWORD}/
+    s/MYSQL_PORT=3306/MYSQL_PORT=${MYSQL_PORT}/
+    s/MYSQL_USER=user/MYSQL_USER=${MYSQL_USER}/
+    s/SLACK_API_TOKEN=1234567890/SLACK_API_TOKEN=${SLACK_API_TOKEN}/
+    s/SLACK_CLIENT_ID=1234567890/SLACK_CLIENT_ID=${SLACK_CLIENT_ID}/
+    s/SLACK_CLIENT_SECRET=1234567890/SLACK_CLIENT_SECRET=${SLACK_CLIENT_SECRET}/
+    s/SLACK_SIGNING_SECRET=1234567890/SLACK_SIGNING_SECRET=${SLACK_CLIENT_ID}/
+  " .env
 fi
 
 source .env
@@ -104,8 +108,9 @@ if [ ! -e /etc/nginx/sites-enabled/mrtallyman.conf ]; then
   sudo /etc/init.d/nginx restart
 fi
 
-if [ ! -e /etc/uwsgi/vassals/mrtallyman.ini ]; then
-  sudo ln -sf ~mrtallyman/mrtallyman/etc/uwsgi.ini /etc/uwsgi/vassals/mrtallyman.ini
+if [ ! -e /etc/systemd/system/mrtallyman.service ]; then
+  sudo ln -sf ~mrtallyman/mrtallyman/etc/mrtallyman.service /etc/systemd/system/mrtallyman.service
+  sudo systemctl daemon-reload
+  sudo systemctl enable mrtallyman.service
+  sudo systemctl restart mrtallyman.service
 fi
-
-$MRTALLYMAN touch etc/uwsgi.ini

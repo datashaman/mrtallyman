@@ -542,6 +542,8 @@ def create_app(config=None):
 
     @app.context_processor
     def inject_google_analytics_id():
-        return dict(google_analytics_id=os.environ['GOOGLE_ANALYTICS_ID'])
+        if os.environ.get('GOOGLE_ANALYTICS_ID'):
+            return dict(google_analytics_id=os.environ['GOOGLE_ANALYTICS_ID'])
+        return dict()
 
     return app

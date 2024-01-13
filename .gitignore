@@ -1,5 +1,6 @@
 /.coverage
 /.env
+/.envrc
 /.pytest_cache/
-/run/
+/.venv/
 __pycache__/
