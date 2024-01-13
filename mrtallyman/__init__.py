@@ -30,15 +30,10 @@ from .slack import (get_client,
                     on,
                     post_message,
                     valid_request)
-
-def get_reward_emojis(team):
-    return team['reward_emojis'].split(',')
-
-def get_troll_emojis(team):
-    return team['troll_emojis'].split(',')
-
-def get_user_name(info):
-    return info['user']['profile']['display_name'] or info['user']['profile']['real_name']
+from .utilities import (get_reward_emojis,
+                        get_troll_emojis,
+                        get_user_info,
+                        get_user_name)
 
 def generate_leaderboard(team, users, column='rewards_received'):
     if column in ['trolls_received', 'trolls_given']:
@@ -56,10 +51,6 @@ def generate_leaderboard(team, users, column='rewards_received'):
         user_name = get_user_name(info)
         leaderboard.append('%d. %s - %d %s' % (index+1, user_name, user.get(column, 0), emoji))
     return '\n'.join(leaderboard)
-
-@memoize
-def get_user_info(team_id, user_id):
-    return get_client(team_id).users_info(user=user_id)
 
 @task
 def generate_leaderboards(team_id, event):
@@ -170,7 +161,7 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
                 output.append("%s is a bot. Bots don't need :%s:."  % (user_name, emoji))
         else:
             given += score
-            user = update_team_user(team_id, recipient, 'rewards_received', score)
+            user = update_team_user(team_id, recipient, 'rewards_received', score, giver)
 
             if report:
                 user_name = get_user_name(info)

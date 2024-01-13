@@ -3,8 +3,8 @@ import os
 import slack
 
 from .decorators import memoize
-from .utilities import team_log
-from .slack import get_bot_by_token
+from .utilities import get_reward_emojis, team_log
+from .slack import get_bot_by_token, post_message
 from contextlib import contextmanager
 from pymysql.err import ProgrammingError
 
@@ -134,7 +134,7 @@ def get_teams_info():
 
     return info
 
-def update_team_user(team_id, user_id, attribute, value):
+def update_team_user(team_id, user_id, attribute, value, giver=None):
     user = get_team_user(team_id, user_id)
 
     if user:
@@ -145,6 +145,12 @@ def update_team_user(team_id, user_id, attribute, value):
 
         with db_cursor() as cursor:
             cursor.execute(sql, args)
+
+        if giver and value > 0:
+            team = get_team_config(team_id)
+            emoji = get_reward_emojis(team)[0]
+            giver = '<@%s>' % giver
+            post_message(team_id, 'You received a :%s: from %s!' % (emoji, giver), user_id)
     else:
         user = create_team_user(team_id, user_id, **{attribute: max(0, value)})
 
