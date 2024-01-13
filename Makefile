@@ -2,6 +2,9 @@ PIP = pip3
 PORT = 5000
 STAGE = dev
 
+MYSQL_ARGS = -u"$(MYSQL_USER)" -p"$(MYSQL_PASSWORD)" -h"$(MYSQL_HOST)" -P"$(MYSQL_PORT)"
+MYSQL_CMD = mysql $(MYSQL_ARGS)
+
 pip-install-requirements:
 	$(PIP) install -r requirements.txt
 
@@ -35,11 +38,10 @@ clean:
 	find . -type d -name __pycache__  -delete
 
 mysql:
-	mysql -u$(MYSQL_USER) -p$(MYSQL_PASSWORD) -h$(MYSQL_HOST) $(MYSQL_DB)
+	$(MYSQL_CMD) "$(MYSQL_DB)"
 
 mysql-recreate:
-	mysqladmin -u$(MYSQL_USER) -p$(MYSQL_PASSWORD) -h$(MYSQL_HOST) drop $(MYSQL_DB)
-	mysqladmin -u$(MYSQL_USER) -p$(MYSQL_PASSWORD) -h$(MYSQL_HOST) create $(MYSQL_DB)
+	$(MYSQL_CMD) -e "drop database if exists $(MYSQL_DB); create database $(MYSQL_DB);"
 
 deploy:
 	cat scripts/deploy.sh | ssh $(DEPLOY_HOST) 'cat>deploy.sh'
