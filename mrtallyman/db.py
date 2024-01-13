@@ -12,6 +12,7 @@ from pymysql.err import ProgrammingError
 def db_cursor():
     db = pymysql.connect(
         host=os.environ.get('MYSQL_HOST', '127.0.0.1'),
+        port=os.environ.get('MYSQL_PORT', 3306),
         user=os.environ.get('MYSQL_USER'),
         password=os.environ.get('MYSQL_PASSWORD'),
         db=os.environ.get('MYSQL_DATABASE'),
@@ -75,7 +76,7 @@ def create_team_table(team_id, channel=None):
     team_log(team_id, 'Creating table %s' % table_name, channel)
 
     sql = '''
-    CREATE TABLE IF NOT EXISTS `%s` (
+    CREATE TABLE `%s` (
         `id` int auto_increment,
         `team_id` varchar(255) not null,
         `user_id` varchar(255) not null,
@@ -249,8 +250,16 @@ def reset_team_scores(reset_interval):
         teams = cursor.fetchall()
 
         for team in teams:
-            delete_team_table(team['id'], None)
-            create_team_table(team['id'], None)
+            sql = ''''
+            UPDATE `team_%s`
+            SET rewards_given = 0,
+                rewards_given_today = 0,
+                rewards_received = 0,
+                trolls_given = 0,
+                trolls_given_today = 0,
+                trolls_received = 0
+            ''' % team['id']
+            cursor.execute(sql)
 
 def reset_team_quotas():
     with db_cursor() as cursor:
@@ -259,5 +268,9 @@ def reset_team_quotas():
         teams = cursor.fetchall()
 
         for team in teams:
-            sql = 'UPDATE `team_' + team['id'] + '` SET rewards_given_today = %s, trolls_given_today = %s'
-            cursor.execute(sql, (0, 0))
+            sql = ''''
+            UPDATE `team_%s`
+            SET rewards_given_today = 0,
+                trolls_given_today = 0
+            ''' % team['id']
+            cursor.execute(sql)
