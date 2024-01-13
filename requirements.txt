@@ -1,5 +1,6 @@
 flask
 flask-menu
+gunicorn
 pymysql
 pymysql[rsa]
 python-dotenv
