@@ -1,4 +1,5 @@
 -r requirements.txt
+black
 pylint
 pytest
 pytest-cov

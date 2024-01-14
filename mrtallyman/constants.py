@@ -89,15 +89,15 @@ AFFIRMATIONS = [
 ]
 
 BANANA_URLS = [
-        'https://www.youtube.com/watch?v=sFukyIIM1XI',
-        'https://www.youtube.com/shorts/eQqdkEU_bng',
-        'https://www.youtube.com/shorts/FOEo3waXr6s',
-        'https://www.youtube.com/shorts/itOGN_a-vBM',
-        'https://www.youtube.com/shorts/8GqiGGI3TyM',
-        ]
+    "https://www.youtube.com/watch?v=sFukyIIM1XI",
+    "https://www.youtube.com/shorts/eQqdkEU_bng",
+    "https://www.youtube.com/shorts/FOEo3waXr6s",
+    "https://www.youtube.com/shorts/itOGN_a-vBM",
+    "https://www.youtube.com/shorts/8GqiGGI3TyM",
+]
 DAYO_URLS = [
-        'https://www.youtube.com/watch?v=AQXVHITd1N4',
-        'https://www.youtube.com/watch?v=H5dpBWlRANE',
-        'https://www.youtube.com/watch?v=hpuwILAUgoc',
-        'https://www.youtube.com/watch?v=hHnxOJlvdwU',
-        ]
+    "https://www.youtube.com/watch?v=AQXVHITd1N4",
+    "https://www.youtube.com/watch?v=H5dpBWlRANE",
+    "https://www.youtube.com/watch?v=hpuwILAUgoc",
+    "https://www.youtube.com/watch?v=hHnxOJlvdwU",
+]
