@@ -3,7 +3,7 @@ import os
 import slack
 
 from .decorators import memoize
-from .utilities import get_golden_threshold, get_reward_emojis, team_log
+from .utilities import get_reward_emojis, team_log
 from .slack import get_bot_by_token, post_message
 from contextlib import contextmanager
 from pymysql.err import ProgrammingError
@@ -283,7 +283,7 @@ def reset_all_team_scores(reset_interval):
 def reset_team_scores(team_id):
     with db_cursor() as cursor:
         sql = ''''
-        UPDATE ``
+        UPDATE `%s`
         SET rewards_given = 0,
             rewards_given_today = 0,
             rewards_received = 0,
