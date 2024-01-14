@@ -39,9 +39,8 @@ def get_bot_access_token(team_id):
 def get_bot_id(team_id):
     team = get_team_config(team_id)
 
-    if team:
-        if team['bot_user_id']:
-            return team['bot_user_id']
+    if team and 'bot_user_id' in team:
+        return team['bot_user_id']
 
 def create_config_table():
     table_name = get_table_name('config')
@@ -107,14 +106,14 @@ def get_team_config(team_id):
         return cursor.fetchone()
 
 def get_team_user(team_id, user_id):
-    sql = 'SELECT * FROM `team_%s`' % team_id + ' WHERE `user_id` = %s'
+    sql = 'SELECT * FROM `%s`' % get_table_name(team_id) + ' WHERE `user_id` = %s'
 
     with db_cursor() as cursor:
         cursor.execute(sql, (user_id,))
         return cursor.fetchone()
 
 def get_team_users(team_id):
-    sql = 'SELECT * FROM `team_%s`' % team_id
+    sql = 'SELECT * FROM `%s`' % get_table_name(team_id)
 
     with db_cursor() as cursor:
         cursor.execute(sql)
@@ -124,13 +123,13 @@ def get_teams_info():
     info = []
 
     with db_cursor() as cursor:
-        sql = 'SELECT * FROM `team_config` ORDER BY `team_name`'
+        sql = 'SELECT * FROM `%s` ORDER BY `team_name`' % get_table_name('config')
         cursor.execute(sql)
         teams = cursor.fetchall()
 
         for team in teams:
             with db_cursor() as users_cursor:
-                sql = 'SELECT COUNT(*) AS `user_count` FROM `team_%s`' % team['id']
+                sql = 'SELECT COUNT(*) AS `user_count` FROM `%s`' % get_table_name(team['id'])
                 users_cursor.execute(sql)
                 result = users_cursor.fetchone()
                 info.append({'team': team, 'user_count': result['user_count']})
@@ -138,6 +137,7 @@ def get_teams_info():
     return info
 
 def update_team_user(team_id, user_id, attribute, value, giver=None):
+    team = get_team_config(team_id)
     user = get_team_user(team_id, user_id)
 
     if user:
@@ -146,16 +146,14 @@ def update_team_user(team_id, user_id, attribute, value, giver=None):
             attribute: max(0, user[attribute] + value),
         }
 
-        threshold = get_golden_threshold(team)
-        threshold_reached = False
+        golden_received = value > 0 and team['golden_threshold'] is not None and user[attribute] >= team['golden_threshold']
 
-        if user[attribute] >= threshold:
-            args['golden_received'] = user['golden_received'] + 1
-            args[attribute] = 0
-            threshold_reached = True
+        if golden_received:
+            args['golden_received'] = user['golden_received'] + floor(user[attribute] / team['golden_threshold'])
+            args[attribute] = args[attribute] % team['golden_threshold']
 
-        sql = 'UPDATE `team_%s` SET %s = %s' % (team_id, attribute, '%(' + attribute + ')s')
-        if threshold_reached:
+        sql = 'UPDATE `%s` SET %s = %s' % (get_table_name(team['id']), attribute, '%(' + attribute + ')s')
+        if golden_received:
             sql += ', `golden_received` = %(golden_received)s)'
         sql += ' WHERE `user_id` = %(user_id)s'
 
@@ -163,14 +161,13 @@ def update_team_user(team_id, user_id, attribute, value, giver=None):
             cursor.execute(sql, args)
 
         if giver and value > 0:
-            team = get_team_config(team_id)
             reward_emoji = get_reward_emojis(team)[0]
             giver = '<@%s>' % giver
             post_message(team_id, 'You received a :%s: from %s!' % (reward_emoji, giver), user_id)
 
-        if threshold_reached:
-            post_message(team_id, 'You have earned a :%s:! Your :%s: have been reset.'
-                         % (team['golden_emoji'], reward_emoji), user_id)
+        if golden_received:
+            post_message(team_id, 'You have earned %s :%s:! Your :%s: have been reset to %d.'
+                         % (golden_received, team['golden_emoji'], reward_emoji, args[attribute]), user_id)
     else:
         user = create_team_user(team_id, user_id, **{attribute: max(0, value)})
 
@@ -190,7 +187,7 @@ def create_team_user(team_id, user_id, **attrs):
     }
     user.update(attrs)
 
-    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `rewards_given`, `rewards_given_today`, `golden_received`, `rewards_received`, `trolls_given`, `trolls_given_today`, `trolls_received`) values (%(team_id)s, %(user_id)s, %(rewards_given)s, %(rewards_given_today)s, %(golden_received)s, %(rewards_received)s, %(trolls_given)s, %(trolls_given_today)s, %(trolls_received)s)'
+    sql = 'INSERT INTO `%s`' % get_table_name(team_id) + ' (`team_id`, `user_id`, `rewards_given`, `rewards_given_today`, `golden_received`, `rewards_received`, `trolls_given`, `trolls_given_today`, `trolls_received`) values (%(team_id)s, %(user_id)s, %(rewards_given)s, %(rewards_given_today)s, %(golden_received)s, %(rewards_received)s, %(trolls_given)s, %(trolls_given_today)s, %(trolls_received)s)'
 
     with db_cursor() as cursor:
         cursor.execute(sql, user)
@@ -198,20 +195,21 @@ def create_team_user(team_id, user_id, **attrs):
     return user
 
 def delete_team_user(team_id, user_id):
-    sql = 'DELETE FROM `team_%s`' % team_id + ' WHERE `user_id` = %s'
+    sql = 'DELETE FROM `%s`' % get_table_name(team_id) + ' WHERE `user_id` = %s'
 
     with db_cursor() as cursor:
         cursor.execute(sql, (user_id,))
 
 def update_team_config(team_id, **attrs):
     team = get_team_config(team_id)
+    table_name = get_table_name('config')
 
     if team:
-        sql = 'UPDATE `team_config` SET ' + ', '.join([f'`{key}` = %({key})s' for key in attrs.keys()]) + ' WHERE `id` = %(id)s'
+        sql = 'UPDATE `%s` SET ' % table_name + ', '.join([f'`{key}` = %({key})s' for key in attrs.keys()]) + ' WHERE `id` = %(id)s'
         args = attrs
         args['id'] = team_id
     else:
-        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, golden_threshold, golden_emoji, reward_emojis, troll_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(golden_threshold)s, %(golden_emoji)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
+        sql = 'INSERT INTO `%s`' % table_name + ' (id, team_name, access_token, bot_access_token, bot_user_id, golden_threshold, golden_emoji, reward_emojis, troll_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(golden_threshold)s, %(golden_emoji)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
         team = {
             'access_token': '',
             'bot_access_token': '',
@@ -285,14 +283,14 @@ def reset_all_team_scores(reset_interval):
 def reset_team_scores(team_id):
     with db_cursor() as cursor:
         sql = ''''
-        UPDATE `team_%s`
+        UPDATE ``
         SET rewards_given = 0,
             rewards_given_today = 0,
             rewards_received = 0,
             trolls_given = 0,
             trolls_given_today = 0,
             trolls_received = 0
-        ''' % team_id
+        ''' % get_table_name(team_id)
         cursor.execute(sql)
 
 def reset_team_quotas():
@@ -303,8 +301,8 @@ def reset_team_quotas():
 
         for team in teams:
             sql = ''''
-            UPDATE `team_%s`
+            UPDATE `%s`
             SET rewards_given_today = 0,
                 trolls_given_today = 0
-            ''' % team['id']
+            ''' % get_table_name(team['id'])
             cursor.execute(sql)

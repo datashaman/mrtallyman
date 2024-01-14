@@ -277,6 +277,20 @@ def handle_config(request):
                     'value': team['troll_emojis'],
                 },
                 {
+                    'type': 'text',
+                    'label': 'Golden emoji',
+                    'name': 'golden_emoji',
+                    'hint': 'Emoji to use for golden rewards.',
+                    'value': team['golden_emoji'],
+                },
+                {
+                    'type': 'text',
+                    'label': 'Golden threshold',
+                    'name': 'golden_threshold',
+                    'hint': 'Threshold when rewards convert to golden rewards. Leave blank to disable.',
+                    'value': team['golden_threshold'],
+                },
+                {
                     'type': 'select',
                     'label': 'Reset interval',
                     'name': 'reset_interval',
