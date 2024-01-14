@@ -11,6 +11,9 @@ def get_reward_emojis(team):
 def get_golden_emoji(team):
     return team['golden_emoji']
 
+def get_golden_threshold(team):
+    return team['golden_threshold']
+
 def get_troll_emojis(team):
     return team['troll_emojis'].split(',')
 

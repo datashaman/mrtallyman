@@ -3,7 +3,7 @@ import os
 import slack
 
 from .decorators import memoize
-from .utilities import get_reward_emojis, team_log
+from .utilities import get_golden_threshold, get_reward_emojis, team_log
 from .slack import get_bot_by_token, post_message
 from contextlib import contextmanager
 from pymysql.err import ProgrammingError
@@ -57,6 +57,7 @@ def create_config_table():
         `bot_access_token` varchar(255),
         `bot_user_id` varchar(255),
         `user_id` varchar(255),
+        `golden_threshold` int,
         `golden_emoji` varchar(255),
         `reward_emojis` varchar(255),
         `troll_emojis` varchar(255),
@@ -140,19 +141,36 @@ def update_team_user(team_id, user_id, attribute, value, giver=None):
     user = get_team_user(team_id, user_id)
 
     if user:
-        user[attribute] = max(0, user[attribute] + value)
+        args = {
+            'user_id': user_id,
+            attribute: max(0, user[attribute] + value),
+        }
 
-        sql = 'UPDATE `team_%s` SET `%s`' % (team_id, attribute) + ' = %s WHERE `user_id` = %s'
-        args = (user[attribute], user_id)
+        threshold = get_golden_threshold(team)
+        threshold_reached = False
+
+        if user[attribute] >= threshold:
+            args['golden_received'] = user['golden_received'] + 1
+            args[attribute] = 0
+            threshold_reached = True
+
+        sql = 'UPDATE `team_%s` SET %s = %s' % (team_id, attribute, '%(' + attribute + ')s')
+        if threshold_reached:
+            sql += ', `golden_received` = %(golden_received)s)'
+        sql += ' WHERE `user_id` = %(user_id)s'
 
         with db_cursor() as cursor:
             cursor.execute(sql, args)
 
         if giver and value > 0:
             team = get_team_config(team_id)
-            emoji = get_reward_emojis(team)[0]
+            reward_emoji = get_reward_emojis(team)[0]
             giver = '<@%s>' % giver
-            post_message(team_id, 'You received a :%s: from %s!' % (emoji, giver), user_id)
+            post_message(team_id, 'You received a :%s: from %s!' % (reward_emoji, giver), user_id)
+
+        if threshold_reached:
+            post_message(team_id, 'You have earned a :%s:! Your :%s: have been reset.'
+                         % (team['golden_emoji'], reward_emoji), user_id)
     else:
         user = create_team_user(team_id, user_id, **{attribute: max(0, value)})
 
@@ -193,13 +211,14 @@ def update_team_config(team_id, **attrs):
         args = attrs
         args['id'] = team_id
     else:
-        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, golden_emoji, reward_emojis, troll_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(golden_emoji)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
+        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, golden_threshold, golden_emoji, reward_emojis, troll_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(golden_threshold)s, %(golden_emoji)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
         team = {
             'access_token': '',
             'bot_access_token': '',
             'bot_user_id': '',
             'daily_quota': None,
             'golden_emoji': 'star',
+            'golden_threshold': 100
             'id': team_id,
             'reset_interval': 'never',
             'reward_emojis': 'banana',
