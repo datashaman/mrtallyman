@@ -216,7 +216,7 @@ def update_team_config(team_id, **attrs):
             'bot_user_id': '',
             'daily_quota': None,
             'golden_emoji': 'star',
-            'golden_threshold': 100
+            'golden_threshold': None,
             'id': team_id,
             'reset_interval': 'never',
             'reward_emojis': 'banana',
