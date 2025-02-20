@@ -79,13 +79,16 @@ def generate_leaderboards(team_id, event):
         if trolls_given:
             leaderboards.append('*Troll Hunters*\n\n%s' % trolls_given)
 
-        bonuses_received = generate_leaderboard(team, users, 'bonuses_received')
-        if bonuses_received:
-            leaderboards.append('*Bonus Received*\n\n%s' % bonuses_received)
+        bonus_emojis = get_bonus_emojis(team)
 
-        bonuses_given = generate_leaderboard(team, users, 'bonuses_given')
-        if bonuses_given:
-            leaderboards.append('*Bonus Given*\n\n%s' % bonuses_given)
+        if bonus_emojis:
+            bonuses_received = generate_leaderboard(team, users, 'bonuses_received')
+            if bonuses_received:
+                leaderboards.append('*Bonus Received*\n\n%s' % bonuses_received)
+
+            bonuses_given = generate_leaderboard(team, users, 'bonuses_given')
+            if bonuses_given:
+                leaderboards.append('*Bonus Given*\n\n%s' % bonuses_given)
 
     if not leaderboards:
         emoji = get_reward_emojis(team)[0]
