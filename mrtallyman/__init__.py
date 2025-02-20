@@ -185,7 +185,8 @@ def update_rewards(team_id, channel, giver, recipients, score=1, report=True):
                     affirmation = random.choice(AFFIRMATIONS)
                 output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['rewards_received'], emoji))
 
-    update_team_user(team_id, giver, 'rewards_given', given)
+    if given:
+        update_team_user(team_id, giver, 'rewards_given', given)
 
     if report:
         return output
@@ -216,7 +217,8 @@ def update_trolls(team_id, channel, giver, recipient, score=1, report=False):
                 affirmation = random.choice(AFFIRMATIONS)
             output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['trolls_received'], emoji))
 
-    update_team_user(team_id, giver, 'trolls_given', given)
+    if given:
+        update_team_user(team_id, giver, 'trolls_given', given)
 
     if report:
         return output
@@ -252,7 +254,8 @@ def update_bonuses(team_id, channel, giver, recipients, score=1, report=True):
                     affirmation = random.choice(AFFIRMATIONS)
                 output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['bonuses_received'], emoji))
 
-    update_team_user(team_id, giver, 'bonuses_given', given)
+    if given:
+        update_team_user(team_id, giver, 'bonuses_given', given)
 
     if report:
         return output
@@ -297,9 +300,7 @@ def update_scores_message(team_id, event):
         found = re.search(':%s:' % emoji, message['text'])
         if found:
             channel = event['channel']
-            report = update_trolls(team_id, channel, event['user'], event['user'])
-            text = ' '.join(report)
-            post_message(team_id, text, channel, ts)
+            update_trolls(team_id, channel, event['user'], event['user'])
 
 @task
 def update_scores_reaction(team_id, event):
