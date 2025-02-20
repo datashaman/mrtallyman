@@ -178,7 +178,7 @@ def update_rewards(team_id, channel, giver, recipients, score=1, report=True):
                 output.append("%s is a bot. Bots don't need :%s:."  % (user_name, emoji))
         else:
             given += score
-            user = update_team_user(team_id, recipient, 'rewards_received', score, giver)
+            user = update_team_user(team_id, recipient, 'rewards_received', score, giver, emoji=emoji)
 
             if report:
                 user_name = get_user_name(info)
@@ -189,7 +189,7 @@ def update_rewards(team_id, channel, giver, recipients, score=1, report=True):
                 output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['rewards_received'], emoji))
 
     if given:
-        update_team_user(team_id, giver, 'rewards_given', given)
+        update_team_user(team_id, giver, 'rewards_given', given, emoji=emoji)
 
     if report:
         return output
@@ -210,7 +210,7 @@ def update_trolls(team_id, channel, giver, recipient, score=1, report=False):
             output.append("%s is a bot. Bots don't need :%s:."  % (user_name, emoji))
     else:
         given += score
-        user = update_team_user(team_id, recipient, 'trolls_received', score)
+        user = update_team_user(team_id, recipient, 'trolls_received', score, emoji=emoji)
 
         if report:
             user_name = get_user_name(info)
@@ -221,7 +221,7 @@ def update_trolls(team_id, channel, giver, recipient, score=1, report=False):
             output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['trolls_received'], emoji))
 
     if given:
-        update_team_user(team_id, giver, 'trolls_given', given)
+        update_team_user(team_id, giver, 'trolls_given', given, emoji=emoji)
 
     if report:
         return output
@@ -247,7 +247,7 @@ def update_bonuses(team_id, channel, giver, recipients, score=1, report=True):
                 output.append("%s is a bot. Bots don't need :%s:."  % (user_name, emoji))
         else:
             given += score
-            user = update_team_user(team_id, recipient, 'bonuses_received', score, giver)
+            user = update_team_user(team_id, recipient, 'bonuses_received', score, giver, emoji=emoji)
 
             if report:
                 user_name = get_user_name(info)
@@ -258,7 +258,7 @@ def update_bonuses(team_id, channel, giver, recipients, score=1, report=True):
                 output.append('%s %s has %d :%s:!'% (affirmation, user_name, user['bonuses_received'], emoji))
 
     if given:
-        update_team_user(team_id, giver, 'bonuses_given', given)
+        update_team_user(team_id, giver, 'bonuses_given', given, emoji=emoji)
 
     if report:
         return output
