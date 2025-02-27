@@ -1,3 +1,5 @@
+include .env
+
 PIP = pip3
 PORT = 5000
 STAGE = dev
