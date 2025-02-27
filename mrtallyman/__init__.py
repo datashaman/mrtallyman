@@ -1,6 +1,5 @@
 import click
 import json
-import logging
 import os
 import random
 import re
@@ -36,10 +35,6 @@ from .utilities import (get_reward_emojis,
                         get_bonus_emojis,
                         get_user_info,
                         get_user_name)
-
-
-logger = logging.getLogger(__name__)
-
 
 def generate_leaderboard(team, users, column='rewards_received'):
     if column in ['trolls_received', 'trolls_given']:
@@ -270,8 +265,6 @@ def update_bonuses(team_id, channel, giver, recipients, score=1, report=True):
 
 @task
 def update_scores_message(team_id, event):
-    logger.info('Update scores message', extra={ 'team_id': team_id, 'event': event })
-
     if 'message' in event:
         message = event['message']
     else:
@@ -288,8 +281,6 @@ def update_scores_message(team_id, event):
         found = re.search(':%s:' % emoji, message['text'])
         if found:
             recipients = re.findall(r'<@([A-Z0-9]+)>', message['text'])
-
-            logger.info('Found recipients', extra={'recipients': recipient })
 
             if recipients:
                 channel = event['channel']
@@ -572,8 +563,6 @@ def create_app(config=None):
 
     @on('message')
     def message_event(payload):
-        logger.info('Received message event', extra={ 'payload': payload })
-
         team_id = payload['team_id']
         event = payload['event']
         channel_type = event['channel_type']
