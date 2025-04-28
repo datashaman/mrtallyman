@@ -59,6 +59,7 @@ def create_config_table():
         `user_id` varchar(255),
         `reward_emojis` varchar(255),
         `troll_emojis` varchar(255),
+        `bonus_emojis` varchar(255),
         `reset_interval` varchar(255),
         `daily_quota` int,
         primary key (`id`)
@@ -86,6 +87,9 @@ def create_team_table(team_id, channel=None):
         `trolls_given` int default 0 not null,
         `trolls_given_today` int default 0 not null,
         `trolls_received` int default 0 not null,
+        `bonuses_given` int default 0 not null,
+        `bonuses_given_today` int default 0 not null,
+        `bonuses_received` int default 0 not null,
         primary key (`id`),
         unique key (`team_id`, `user_id`),
         foreign key (`team_id`) references `team_config`(`id`)
@@ -134,7 +138,7 @@ def get_teams_info():
 
     return info
 
-def update_team_user(team_id, user_id, attribute, value, giver=None):
+def update_team_user(team_id, user_id, attribute, value, giver=None, emoji=None):
     user = get_team_user(team_id, user_id)
 
     if user:
@@ -148,7 +152,8 @@ def update_team_user(team_id, user_id, attribute, value, giver=None):
 
         if giver and value > 0:
             team = get_team_config(team_id)
-            emoji = get_reward_emojis(team)[0]
+            if not emoji:
+                emoji = get_reward_emojis(team)[0]
             giver = '<@%s>' % giver
             post_message(team_id, 'You received a :%s: from %s!' % (emoji, giver), user_id)
     else:
@@ -166,10 +171,13 @@ def create_team_user(team_id, user_id, **attrs):
         'trolls_given': 0,
         'trolls_given_today': 0,
         'trolls_received': 0,
+        'bonuses_given': 0,
+        'bonuses_given_today': 0,
+        'bonuses_received': 0,
     }
     user.update(attrs)
 
-    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `rewards_given`, `rewards_given_today`, `rewards_received`, `trolls_given`, `trolls_given_today`, `trolls_received`) values (%(team_id)s, %(user_id)s, %(rewards_given)s, %(rewards_given_today)s, %(rewards_received)s, %(trolls_given)s, %(trolls_given_today)s, %(trolls_received)s)'
+    sql = 'INSERT INTO `team_%s`' % team_id + ' (`team_id`, `user_id`, `rewards_given`, `rewards_given_today`, `rewards_received`, `trolls_given`, `trolls_given_today`, `trolls_received`, `bonuses_given`, `bonuses_given_today`, `bonuses_received`) values (%(team_id)s, %(user_id)s, %(rewards_given)s, %(rewards_given_today)s, %(rewards_received)s, %(trolls_given)s, %(trolls_given_today)s, %(trolls_received)s, %(bonuses_given)s, %(bonuses_given_today)s, %(bonuses_received)s)'
 
     with db_cursor() as cursor:
         cursor.execute(sql, user)
@@ -190,9 +198,10 @@ def update_team_config(team_id, **attrs):
         args = attrs
         args['id'] = team_id
     else:
-        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, reward_emojis, troll_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(reward_emojis)s, %(troll_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
+        sql = 'INSERT INTO `team_config` (id, team_name, access_token, bot_access_token, bot_user_id, reward_emojis, troll_emojis, bonus_emojis, reset_interval, daily_quota, user_id) values (%(id)s, %(team_name)s, %(access_token)s, %(bot_access_token)s, %(bot_user_id)s, %(reward_emojis)s, %(troll_emojis)s, %(bonus_emojis)s, %(reset_interval)s, %(daily_quota)s, %(user_id)s)'
         team = {
             'access_token': '',
+            'bonus_emojis': '',
             'bot_access_token': '',
             'bot_user_id': '',
             'daily_quota': None,
@@ -268,7 +277,10 @@ def reset_team_scores(team_id):
             rewards_received = 0,
             trolls_given = 0,
             trolls_given_today = 0,
-            trolls_received = 0
+            trolls_received = 0,
+            bonuses_given = 0,
+            bonuses_given_today = 0,
+            bonuses_received = 0
         ''' % team_id
         cursor.execute(sql)
 
@@ -282,6 +294,7 @@ def reset_team_quotas():
             sql = ''''
             UPDATE `team_%s`
             SET rewards_given_today = 0,
-                trolls_given_today = 0
+                trolls_given_today = 0,
+                bonuses_given_today = 0
             ''' % team['id']
             cursor.execute(sql)

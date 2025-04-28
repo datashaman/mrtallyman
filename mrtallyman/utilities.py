@@ -11,6 +11,11 @@ def get_reward_emojis(team):
 def get_troll_emojis(team):
     return team['troll_emojis'].split(',')
 
+def get_bonus_emojis(team):
+    if team['bonus_emojis'] is None:
+        return []
+    return team['bonus_emojis'].split(',')
+
 def get_user_name(info):
     return info['user']['profile']['display_name'] or info['user']['profile']['real_name']
 
