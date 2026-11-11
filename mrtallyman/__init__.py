@@ -26,6 +26,7 @@ from .constants import (AFFIRMATIONS,
 from .db import get_bot_id
 from .decorators import memoize, task
 from .slack import (get_client,
+                    get_permalink,
                     handle_request,
                     on,
                     post_message,
@@ -140,7 +141,7 @@ def generate_me(team_id, event):
     if text:
         post_message(team_id, text, event['channel'], event.get('thread_ts'))
 
-def update_users(team_id, channel, giver, recipients, score=1, report=True):
+def update_users(team_id, channel, giver, recipients, score=1, report=True, permalink=None):
     recipients = set(recipients)
     team = get_team_config(team_id)
     emoji = get_reward_emojis(team)[0]
@@ -161,7 +162,7 @@ def update_users(team_id, channel, giver, recipients, score=1, report=True):
                 output.append("%s is a bot. Bots don't need :%s:."  % (user_name, emoji))
         else:
             given += score
-            user = update_team_user(team_id, recipient, 'rewards_received', score, giver)
+            user = update_team_user(team_id, recipient, 'rewards_received', score, giver, permalink)
 
             if report:
                 user_name = get_user_name(info)
@@ -228,7 +229,8 @@ def update_scores_message(team_id, event):
 
             if recipients:
                 channel = event['channel']
-                report = update_users(team_id, channel, event['user'], recipients)
+                permalink = get_permalink(team_id, channel, message['ts'])
+                report = update_users(team_id, channel, event['user'], recipients, permalink=permalink)
                 text = ' '.join(report)
                 post_message(team_id, text, channel, ts)
 
@@ -247,7 +249,9 @@ def update_scores_reaction(team_id, event):
     if event['type'] == 'reaction_removed':
         score = -1
     if event['reaction'] in get_reward_emojis(team) and event.get('item_user') and event['user'] != event['item_user']:
-        update_users(team_id, None, event['user'], [event['item_user']], score, False)
+        item = event.get('item', {})
+        permalink = get_permalink(team_id, item['channel'], item['ts']) if score > 0 and item.get('type') == 'message' else None
+        update_users(team_id, None, event['user'], [event['item_user']], score, False, permalink)
     elif event['reaction'] in get_troll_emojis(team) and event.get('item_user') and event['user'] != event['item_user']:
         update_trolls(team_id, None, event['user'], event['item_user'], score, False)
 

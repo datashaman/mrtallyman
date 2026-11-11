@@ -2,6 +2,7 @@ import hashlib
 import hmac
 import os
 import slack
+import slack.errors
 import time
 
 from .decorators import memoize
@@ -40,6 +41,13 @@ def post_message(team_id, text, channel, thread_ts=None):
         thread_ts=thread_ts,
         text=text
     )
+
+def get_permalink(team_id, channel, ts):
+    try:
+        return get_client(team_id).chat_getPermalink(channel=channel, message_ts=ts)['permalink']
+    except (slack.errors.SlackApiError, KeyError):
+        # the link is a nicety: notify without it rather than drop the notification
+        return None
 
 def handle_event(payload):
     event_type = payload['event']['type']
