@@ -42,12 +42,24 @@ def post_message(team_id, text, channel, thread_ts=None):
         text=text
     )
 
-def get_permalink(team_id, channel, ts):
+def message_source(team_id, channel, ts, text=None):
+    """Quote of the message at channel/ts plus a link to it, for a notification."""
+    client = get_client(team_id)
+    # each part is a nicety: on any API failure leave it out rather than drop the notification
+    if text is None:
+        try:
+            # replies works for top-level messages and thread replies alike
+            # shortcut: only searches the first page of a thread; paginate if replies past ~1000 matter
+            messages = client.conversations_replies(channel=channel, ts=ts)['messages']
+            text = next((m.get('text') for m in messages if m.get('ts') == ts), None)
+        except (slack.errors.SlackApiError, KeyError):
+            pass
+    lines = ['> ' + line for line in (text or '').splitlines()]
     try:
-        return get_client(team_id).chat_getPermalink(channel=channel, message_ts=ts)['permalink']
+        lines.append('<%s|View message>' % client.chat_getPermalink(channel=channel, message_ts=ts)['permalink'])
     except (slack.errors.SlackApiError, KeyError):
-        # the link is a nicety: notify without it rather than drop the notification
-        return None
+        pass
+    return '\n'.join(lines) or None
 
 def handle_event(payload):
     event_type = payload['event']['type']
