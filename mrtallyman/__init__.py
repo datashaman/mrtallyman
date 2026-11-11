@@ -428,7 +428,10 @@ def create_app(config=None):
     with app.app_context():
         init_db(app)
 
-    menu = Menu(app).root_node
+    Menu(app)
+    with app.app_context():
+        # Menu.root() works on flask-menu 0.7 to 2.x; Menu.root_node only exists from 1.0
+        menu = Menu.root()
     menu.submenu('.').register('home', 'Home')
     menu.submenu('.how-it-works').register('how_it_works', 'How It Works')
     menu.submenu('.pricing').register('pricing', 'Pricing')
