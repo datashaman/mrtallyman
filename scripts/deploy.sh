@@ -92,7 +92,7 @@ if [ ! -e ~mrtallyman/.virtualenvs/mrtallyman ]; then
   $MRTALLYMAN bash -c "source /etc/bash_completion.d/virtualenvwrapper && mkvirtualenv -p /usr/bin/python3 mrtallyman"
 fi
 
-$MRTALLYMAN bash -c "source /etc/bash_completion.d/virtualenvwrapper && workon mrtallyman && pip install -r requirements.txt uwsgi"
+$MRTALLYMAN bash -c "source /etc/bash_completion.d/virtualenvwrapper && workon mrtallyman && pip install -r requirements-frozen.txt"
 
 if ! dpkg -s nginx > /dev/null; then
   sudo apt install nginx
