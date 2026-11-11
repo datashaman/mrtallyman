@@ -6,6 +6,7 @@ STAGE = dev
 
 MYSQL_ARGS = -u"$(MYSQL_USER)" -p"$(MYSQL_PASSWORD)" -h"$(MYSQL_HOST)" -P"$(MYSQL_PORT)"
 MYSQL_CMD = mysql $(MYSQL_ARGS)
+MYSQL_DUMP_CMD = mysqldump $(MYSQL_ARGS)
 
 pip-install-requirements:
 	$(PIP) install -r requirements.txt
@@ -41,6 +42,9 @@ clean:
 
 mysql:
 	$(MYSQL_CMD) "$(MYSQL_DATABASE)"
+
+mysql-dump:
+	$(MYSQL_DUMP_CMD) "$(MYSQL_DATABASE)"
 
 mysql-recreate:
 	$(MYSQL_CMD) -e "drop database if exists $(MYSQL_DATABASE); create database $(MYSQL_DATABASE);"

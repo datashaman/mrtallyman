@@ -7,7 +7,6 @@ WorkingDirectory=/home/marlinf/mrtallyman/
 Restart=always
 KillSignal=SIGQUIT
 Type=notify
-StandardError=syslog
 NotifyAccess=all
 
 [Install]
