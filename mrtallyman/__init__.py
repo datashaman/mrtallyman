@@ -6,7 +6,7 @@ import re
 import requests
 
 from flask import Flask, abort, redirect, render_template, request, url_for
-from flask_menu import Menu, register_menu
+from flask_menu import Menu
 
 from .db import (init_db,
                     create_team_table,
@@ -428,7 +428,11 @@ def create_app(config=None):
     with app.app_context():
         init_db(app)
 
-    Menu(app)
+    menu = Menu(app).root_node
+    menu.submenu('.').register('home', 'Home')
+    menu.submenu('.how-it-works').register('how_it_works', 'How It Works')
+    menu.submenu('.pricing').register('pricing', 'Pricing')
+    menu.submenu('.privacy-policy').register('privacy_policy', 'Privacy Policy')
 
     @app.route('/slack/event', methods=['POST'])
     def event():
@@ -509,12 +513,10 @@ def create_app(config=None):
         return render_template('sorry.html')
 
     @app.route('/')
-    @register_menu(app, '.', 'Home')
     def home():
         return render_template('home.html')
 
     @app.route('/how-it-works')
-    @register_menu(app, '.how-it-works', 'How It Works')
     def how_it_works():
         return render_template('how-it-works.html')
 
@@ -524,12 +526,10 @@ def create_app(config=None):
         return render_template('info.html', info=info)
 
     @app.route('/pricing')
-    @register_menu(app, '.pricing', 'Pricing')
     def pricing():
         return render_template('pricing.html')
 
     @app.route('/privacy-policy')
-    @register_menu(app, '.privacy-policy', 'Privacy Policy')
     def privacy_policy():
         return render_template('privacy-policy.html')
 
