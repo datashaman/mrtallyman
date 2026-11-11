@@ -138,7 +138,7 @@ def get_teams_info():
 
     return info
 
-def update_team_user(team_id, user_id, attribute, value, giver=None, emoji=None, permalink=None):
+def update_team_user(team_id, user_id, attribute, value, giver=None, emoji=None, source=None):
     user = get_team_user(team_id, user_id)
 
     if user:
@@ -156,8 +156,8 @@ def update_team_user(team_id, user_id, attribute, value, giver=None, emoji=None,
                 emoji = get_reward_emojis(team)[0]
             giver = '<@%s>' % giver
             notification = 'You received a :%s: from %s!' % (emoji, giver)
-            if permalink:
-                notification += '\n' + permalink
+            if source:
+                notification += '\n' + source
             post_message(team_id, notification, user_id)
     else:
         user = create_team_user(team_id, user_id, **{attribute: max(0, value)})
